@@ -97,7 +97,7 @@ class EventTicketsController extends MyBaseController
                 'messages' => $ticket->errors(),
             ]);
         }
-
+        
         $ticket->event_id = $event_id;
         $ticket->title = $request->get('title');
         $ticket->quantity_available = !$request->get('quantity_available') ? null : $request->get('quantity_available');

@@ -212,7 +212,7 @@
                 <div class="tab-pane {{$tab == 'affiliates' ? 'active' : ''}}" id="affiliates">
 
                     <h4>@lang("Affiliates.affiliate_tracking")</h4>
-
+                    
                     <div class="well">
                         @lang("Affiliates.affiliate_tracking_text")
 

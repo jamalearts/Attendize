@@ -1,0 +1,38 @@
+<?php
+
+return array(
+
+  //==================================== Translations ====================================//
+  'event_registration' => 'Event Registration',
+  'show_categories' => 'Categories',
+  'create_category' => 'Create Category',
+  'update_category' => 'Update Category',
+  'category_name' => 'Category Name',
+  'category_name_placeholder'=> 'E.g: Early Registration',
+  'category_description' => 'Category Description',
+  'category_status' => 'Category Status',
+  'max_participants' => 'Max Participants ',
+  'max_participants_placeholder'=> 'E.g: 200',
+  'category_conferences'=> 'Conferences',
+  'select_multiple_conference' => 'Select Multiple Conference',
+  'start_date'=> 'Start Date',
+  'end_date'=> 'End Date',
+  'active'=> 'Active',
+  'inactive'=> 'In Active',
+  'show_conferences_register'=> 'Conferences Register',
+  'create_conferences_register'=> 'Create Conferences Register',
+  "show_conferences" => "Show Conferences",
+  "create_conference" => "Create Conference",
+  "search_conferences" => "Search Conferences",
+  "name" => "Name",
+  "status" => "Status",
+  "price" => "Price",
+  'conference_name' => 'Conference Name',
+  'conference_name_placeholder' => 'Enter conference name',
+  'conference_status' => 'Conference Status',
+  'conference_price' => 'Conference Price',
+  'price_placeholder' => 'Enter price',
+  'professions' => 'Professions',
+  'conference_description' => 'Conference Description',
+  'description_placeholder' => 'Enter a brief description',
+);

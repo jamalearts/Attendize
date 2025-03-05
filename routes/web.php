@@ -20,6 +20,9 @@ use App\Http\Controllers\EventCustomizeController;
 use App\Http\Controllers\EventDashboardController;
 use App\Http\Controllers\EventOrdersController;
 use App\Http\Controllers\EventPromoteController;
+use App\Http\Controllers\EventRegistrationCategoryController;
+use App\Http\Controllers\EventRegistrationConferenceController;
+use App\Http\Controllers\EventRegistrationController;
 use App\Http\Controllers\EventSurveyController;
 use App\Http\Controllers\EventTicketsController;
 use App\Http\Controllers\EventViewController;
@@ -334,6 +337,90 @@ Route::group(
             Route::post('{event_id}/go_live',
                 [EventController::class, 'postMakeEventLive']
             )->name('MakeEventLive');
+
+            /*
+             * -------
+             * Registration
+             * -------
+            */
+            Route::get('{event_id}/registration',
+                [EventRegistrationController::class, 'showRegistration']
+            )->name('showEventRegistration');
+
+                /*
+                * ----------
+                * Categories
+                * ----------
+                */
+                Route::get('{event_id}/registration/categories',
+                    [EventRegistrationCategoryController::class, 'showCategories']
+                )->name('showEventRegistrationCategories');
+
+                Route::get('{event_id}/registration/categories/create',
+                    [EventRegistrationCategoryController::class, 'showCreateCategory']
+                )->name('showCreateEventRegistrationCategory');
+
+                Route::post('{event_id}/registration/categories/create',
+                    [EventRegistrationCategoryController::class, 'postCreateCategory']
+                )->name('postCreateEventRegistrationCategory');
+
+                Route::get('{event_id}/registration/categories/{category_id}/edit',
+                    [EventRegistrationCategoryController::class, 'showEditCategory']
+                )->name('showEditEventRegistrationCategory');
+
+                Route::post('{event_id}/registration/categories/{category_id}/edit',
+                    [EventRegistrationCategoryController::class, 'postEditCategory']
+                )->name('postEditEventRegistrationCategory');
+
+                Route::get('{event_id}/registration/categories/{category_id}/delete',
+                    [EventRegistrationCategoryController::class,'showDeleteCategory']
+                )->name('showDeleteEventRegistrationCategory');
+
+                Route::post('{event_id}/registration/categories/{category_id}/delete',
+                    [EventRegistrationCategoryController::class,'postDeleteCategory']
+                )->name('postDeleteEventRegistrationCategory');
+
+                Route::get('{event_id}/registration/categories/{category_id}/conferences',
+                    [EventRegistrationCategoryController::class, 'showConferencesCategory']
+                )->name('showEventRegistrationConferencesCategory');
+
+
+                /*
+                * ----------
+                * Conferences
+                * ----------
+                */
+                Route::get('{event_id}/registration/conferences',
+                    [EventRegistrationConferenceController::class, 'showConferences']
+                )->name('showEventRegistrationConferences');
+
+                Route::get('{event_id}/registration/conferences/create',
+                    [EventRegistrationConferenceController::class, 'showCreateConferences']
+                )->name('showCreateEventRegistrationConference');
+
+                Route::post('{event_id}/registration/conferences/create',
+                    [EventRegistrationConferenceController::class, 'postCreateConference']
+                )->name('postCreateEventRegistrationConference');
+
+                Route::get('{event_id}/registration/conferences/{conference_id}/edit',
+                    [EventRegistrationConferenceController::class, 'showEditConference']
+                )->name('showEditEventRegistrationConference');
+
+                Route::post('registration/conferences/{conference_id}/edit',
+                    [EventRegistrationConferenceController::class, 'postEditConference']
+                )->name('postEditEventRegistrationConference');
+
+                Route::get('{event_id}/registration/conferences/{conference_id}/delete',
+                    [EventRegistrationConferenceController::class,'showDeleteConference']
+                )->name('showDeleteEventRegistrationConference');
+
+                Route::post('{event_id}/registration/conferences/{conference_id}/delete',
+                    [EventRegistrationConferenceController::class,'postDeleteConference']
+                )->name('postDeleteEventRegistrationConference');
+
+                Route::get('{event_id}/registration/conferences/{conference_id}/professions',
+                    [EventRegistrationConferenceController::class, 'showProfessionsConference']
+                )->name('showEventRegistrationProfessionsConference');
 
             /*
              * -------

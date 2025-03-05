@@ -19,6 +19,7 @@ return array (
   'cancel_refund' => 'If you would like to refund the order which this attendee belongs to you can do so <strong><a href=":url">here</a></strong>.',
   'cancel_refund_user' => 'Refund :name for their ticket.',
   'cant_refund_here' => 'Sorry, you can\'t refund :gateway payments here. You will have to do it on their website.',
+  'registration' => 'Registration',
   'check-in' => 'Check-In',
   'checkin_search_placeholder' => 'Search by Attendee Name, Order Reference, Attendee Reference...',
   'close' => 'close',
@@ -96,7 +97,7 @@ return array (
   'ticket_title_placeholder' => 'E.g: General Admission',
   'update_order' => 'Update Order',
   'widgets' => 'Widgets',
-  'LLH:obsolete' => 
+  'LLH:obsolete' =>
   array (
     'create_question' => 'Create Question',
   ),

@@ -50,6 +50,12 @@
         </ul>
         <h5 class="heading">@lang("ManageEvent.event_tools")</h5>
         <ul id="nav_event" class="topmenu">
+            <li class="{{ Request::is('*registration*') ? 'active' : '' }}">
+                <a href="{{ route('showEventRegistration', ['event_id' => $event->id]) }}">
+                    <span class="figure"><i class="ico-file-text"></i></span>
+                    <span class="text">@lang("ManageEvent.registration")</span>
+                </a>
+            </li>
             <li class="{{ Request::is('*check_in*') ? 'active' : '' }}">
                 <a href="{{route('showCheckIn', array('event_id' => $event->id))}}">
                     <span class="figure"><i class="ico-checkbox-checked"></i></span>
