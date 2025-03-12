@@ -2,7 +2,7 @@
 
 @section('title')
     @parent
-    @lang('Registration.event_registration')
+    @lang('Registration.show_registrations')
 @stop
 
 @section('top_nav')
@@ -11,7 +11,133 @@
 
 @section('page_title')
     <i class="ico-file-text mr5"></i>
-    @lang('Registration.event_registration')
+    Show Registrations
+@stop
+
+@section('head')
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .bulk-actions {
+            display: none;
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .checkbox-cell {
+            width: 30px;
+            text-align: center;
+        }
+
+        .select-all-container {
+            margin-bottom: 10px;
+        }
+
+        .select-all-checkbox {
+            margin-right: 5px;
+        }
+
+        .bulk-delete-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+
+        .bulk-delete-btn:hover {
+            background-color: #c9302c;
+        }
+
+        .bulk-delete-btn i {
+            margin-right: 5px;
+        }
+
+        .registration-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+
+        .not-found-container {
+            text-align: center;
+            padding: 50px 0;
+        }
+
+        .not-found-icon {
+            font-size: 5em;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+
+        .not-found-message {
+            font-size: 2em;
+            margin-top: 10px;
+            color: #777;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .filter-section select {
+            margin-right: 10px;
+        }
+
+        .registration-image {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .status-inactive {
+            background-color: #dc3545;
+            color: white;
+        }
+
+        .approval-pending {
+            background-color: #ffc107;
+            color: black;
+        }
+
+        .approval-approved {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .approval-rejected {
+            background-color: #dc3545;
+            color: white;
+        }
+    </style>
 @stop
 
 @section('menu')
@@ -20,8 +146,13 @@
 
 @section('page_header')
     <div class="col-md-9">
-        <!-- Toolbar -->
         <div class="btn-toolbar" role="toolbar">
+            <div class="btn-group btn-group-responsive">
+                <button class='loadModal btn btn-success' data-modal-id='CreateRegistration'
+                    data-href="{{ route('showCreateEventRegistration', ['event_id' => $event->id]) }}" type="button">
+                    <i class="ico-file-plus"></i> @lang('Registration.create_registration_form')
+                </button>
+            </div>
             <div class="btn-group btn-group-responsive">
                 <a href="{{ route('showEventRegistrationCategories', ['event_id' => $event->id]) }}" class='btn btn-success'
                     type="button"><i class="ico-folder"></i> @lang('Registration.show_categories')
@@ -33,124 +164,318 @@
                 </a>
             </div>
         </div>
-        <!--/ Toolbar -->
     </div>
-    {{-- <div class="col-md-3">
-    {!! Form::open(array('url' => route('showEventTickets', ['event_id'=>$event->id,'sort_by'=>$sort_by]), 'method' => 'get')) !!}
-    <div class="input-group">
-        <input name='q' value="{{$q or ''}}" placeholder="@lang("Ticket.search_tickets")" type="text" class="form-control">
-    <span class="input-group-btn">
-        <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
-    </span>
-        {!!Form::hidden('sort_by', $sort_by)!!}
+    <div class="col-md-3">
+        {!! Form::open([
+            'url' => route('showEventRegistration', ['event_id' => $event->id]),
+            'method' => 'get',
+            'id' => 'search-form',
+        ]) !!}
+        <div class="input-group">
+            <input name='q' value="{{ $q ?? '' }}" placeholder="@lang('Registration.search_registrations')" type="text"
+                class="form-control">
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
+            </span>
+        </div>
+        {!! Form::close() !!}
     </div>
-    {!! Form::close() !!}
-</div> --}}
 @stop
 
 @section('content')
-
-
-    @include('ManageOrganiser.Partials.EventCreateAndEditJS')
-
     <div class="row">
         <div class="col-md-12">
-            <div class="panel">
-                <div class="panel-heading">
-                    <h3 class="panel-title">
-                        <i class="ico-file-text"></i>
-                        Registration Form
-                    </h3>
-                </div>
+            <!-- Filters -->
+            <div class="filter-section">
+                <form id="filter-form" class="form-inline">
+                    <select name="status" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Status</option>
+                        <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+
+                    <select name="approval_status" class="form-control" onchange="this.form.submit()">
+                        <option value="">All Approval Status</option>
+                        <option value="automatic" {{ request('approval_status') == 'automatic' ? 'selected' : '' }}>Automatic
+                        </option>
+                        <option value="manual" {{ request('approval_status') == 'manual' ? 'selected' : '' }}>Manual
+                        </option>
+                    </select>
+                </form>
+            </div>
+
+            <!-- Bulk Actions Area -->
+            <div class="bulk-actions panel panel-default">
                 <div class="panel-body">
-                    {{-- {!! Form::open(['url' => route('storeEventRegistration', ['event_id' => $event->id]), 'class' => 'ajax']) !!} --}}
+                    <button id="bulkDeleteBtn" class="bulk-delete-btn" disabled>
+                        <i class="ico-trash"></i> Delete Selected Registrations
+                    </button>
+                    <span id="selectedCount" class="text-muted ml-2"></span>
+                </div>
+            </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {!! Form::label('category_id', 'Category', ['class' => 'control-label required']) !!}
-                                {!! Form::select('category_id', ['mm', 'ss'], null, ['class' => 'form-control']) !!}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {!! Form::label('status', 'Status', ['class' => 'control-label required']) !!}
-                                {!! Form::select('status', ['active' => 'Active', 'inactive' => 'Inactive'], 'active', [
-                                    'class' => 'form-control',
-                                ]) !!}
-                            </div>
-                        </div>
+            @if ($registration->count())
+                <div class="panel">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th class="checkbox-cell">
+                                        <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                                    </th>
+                                    <th>
+                                        {!! Html::sortable_link('Image & Name', $sort_by, 'name', $sort_order, ['q' => $q]) !!}
+                                    </th>
+                                    <th>Categories</th>
+                                    <th>
+                                        {!! Html::sortable_link('Status', $sort_by, 'status', $sort_order, ['q' => $q]) !!}
+                                    </th>
+                                    <th>
+                                        {!! Html::sortable_link('Start Date', $sort_by, 'start_date', $sort_order, ['q' => $q]) !!}
+                                    </th>
+                                    <th>
+                                        {!! Html::sortable_link('End Date', $sort_by, 'end_date', $sort_order, ['q' => $q]) !!}
+                                    </th>
+                                    <th>
+                                        {!! Html::sortable_link('Approval Status', $sort_by, 'approval_status', $sort_order, ['q' => $q]) !!}
+                                    </th>
+                                    <th>Registrations</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($registration as $reg)
+                                    <tr
+                                        class="registration_{{ $reg->id }} {{ $reg->status == 'inactive' ? 'danger' : '' }}">
+                                        <td class="checkbox-cell">
+                                            <input type="checkbox" class="registration-checkbox"
+                                                data-id="{{ $reg->id }}" data-name="{{ $reg->name }}">
+                                        </td>
+                                        <td>
+                                            <img src="{{ $reg->image_path ?? 'default-image-path.jpg' }}"
+                                                alt="{{ $reg->name }}" class="registration-image">
+                                            <span class="ml-2">{{ $reg->name }}</span>
+                                        </td>
+                                        <td>
+                                            @foreach ($reg->categories as $category)
+                                                <span class="badge">{{ $category->name }}</span>
+                                            @endforeach
+                                        </td>
+                                        <td>
+                                            <span
+                                                class="status-badge {{ $reg->status == 'active' ? 'status-active' : 'status-inactive' }}">
+                                                {{ ucfirst($reg->status) }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $reg->start_date }}</td>
+                                        <td>{{ $reg->end_date }}</td>
+                                        <td>
+                                            <span class="status-badge approval-{{ $reg->approval_status }}">
+                                                {{ ucfirst($reg->approval_status) }}
+                                            </span>
+                                        </td>
+                                        <td>{{ $reg->users_count }}</td>
+                                        <td>
+                                            <a
+                                            {{-- href="{{ route('showEventRegistrationDetails', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
+                                                class="btn btn-xs btn-success">
+                                                <i class="ico-eye"></i> View
+                                            </a>
+                                            <a data-modal-id="EditRegistration" href="javascript:void(0);"
+                                                {{-- data-href="{{ route('showEditEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
+                                                class="loadModal btn btn-xs btn-primary">
+                                                <i class="ico-edit"></i> Edit
+                                            </a>
+                                            <a data-modal-id="DeleteRegistration" href="javascript:void(0);"
+                                                {{-- data-href="{{ route('showDeleteEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
+                                                class="loadModal btn btn-xs btn-danger">
+                                                <i class="ico-trash"></i> Delete
+                                            </a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {!! Form::label('start_date', trans('Event.event_start_date'), ['class' => 'required control-label']) !!}
-                                {!! Form::text('start_date', $event->getFormattedDate('start_date'), [
-                                    'class' => 'form-control start hasDatepicker ',
-                                    'data-field' => 'datetime',
-                                    'data-startend' => 'start',
-                                    'data-startendelem' => '.end',
-                                    'readonly' => '',
-                                ]) !!}
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {!! Form::label('end_date', trans('ManageEvent.end_sale_on'), [
-                                    'class' => ' control-label ',
-                                ]) !!}
-                                {!! Form::text('end_date', old('end_date'), [
-                                    'class' => 'form-control end hasDatepicker ',
-                                    'data-field' => 'datetime',
-                                    'data-startend' => 'end',
-                                    'data-startendelem' => '.start',
-                                    'readonly' => '',
-                                ]) !!}
-                            </div>
-                        </div>
+                </div>
+            @else
+                @if (!empty($q))
+                    @include('Shared.Partials.NoSearchResults')
+                @else
+                    <div class="not-found-container">
+                        <i class="ico-file-text not-found-icon"></i>
+                        <p class="not-found-message">No registrations found.</p>
                     </div>
+                @endif
+            @endif
+        </div>
+        <div class="col-md-12">
+            {!! $registration->appends(['sort_by' => $sort_by, 'sort_order' => $sort_order, 'q' => $q])->render() !!}
+        </div>
+    </div>
 
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                {!! Form::label('approval_status', 'Approval Status', ['class' => 'control-label required']) !!}
-                                {!! Form::select('approval_status', ['automatic' => 'Automatic', 'manual' => 'Manual'], 'automatic', [
-                                    'class' => 'form-control',
-                                ]) !!}
-                            </div>
-                        </div>
+    <!-- Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Confirm Bulk Delete</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the selected registrations?</p>
+                    <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                    <div id="selectedRegistrationsList" class="well" style="max-height: 200px; overflow-y: auto;">
                     </div>
-
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <button type="submit" class="btn btn-success">
-                                    <i class="ico-save"></i>
-                                    Save Registration
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {!! Form::close() !!}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmBulkDelete" class="btn btn-danger">Delete Registrations</button>
                 </div>
             </div>
         </div>
     </div>
+@stop
 
+@section('foot')
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
     <script>
-        $(function() {
-            $('.start_date, .end_date').datetimepicker({
-                format: 'MM/DD/YYYY HH:mm',
-                icons: {
-                    time: 'ico-clock',
-                    date: 'ico-calendar',
-                    up: 'ico-arrow-up',
-                    down: 'ico-arrow-down',
-                    previous: 'ico-arrow-left',
-                    next: 'ico-arrow-right',
+        $(document).ready(function() {
+            // Initialize select2
+            $('.select2').select2();
+
+            // Bulk delete functionality
+            let selectedRegistrations = [];
+
+            // Update UI based on selections
+            function updateBulkActionUI() {
+                if (selectedRegistrations.length > 0) {
+                    $('.bulk-actions').show();
+                    $('#bulkDeleteBtn').prop('disabled', false);
+                    $('#selectedCount').text(selectedRegistrations.length + ' registrations selected');
+                } else {
+                    $('.bulk-actions').hide();
+                    $('#bulkDeleteBtn').prop('disabled', true);
+                    $('#selectedCount').text('');
                 }
+            }
+
+            // Handle checkbox clicks
+            $(document).on('change', '.registration-checkbox', function() {
+                const registrationId = $(this).data('id');
+                const registrationName = $(this).data('name');
+
+                if ($(this).is(':checked')) {
+                    if (!selectedRegistrations.some(reg => reg.id === registrationId)) {
+                        selectedRegistrations.push({
+                            id: registrationId,
+                            name: registrationName
+                        });
+                    }
+                } else {
+                    selectedRegistrations = selectedRegistrations.filter(reg => reg.id !== registrationId);
+                    $('#selectAll').prop('checked', false);
+                }
+
+                updateBulkActionUI();
+            });
+
+            // Select All checkbox
+            $('#selectAll').change(function() {
+                const isChecked = $(this).is(':checked');
+                $('.registration-checkbox').prop('checked', isChecked);
+
+                selectedRegistrations = [];
+                if (isChecked) {
+                    $('.registration-checkbox').each(function() {
+                        selectedRegistrations.push({
+                            id: $(this).data('id'),
+                            name: $(this).data('name')
+                        });
+                    });
+                }
+
+                updateBulkActionUI();
+            });
+
+            // Show confirmation modal
+            $('#bulkDeleteBtn').click(function() {
+                let listHtml = '<ul>';
+                selectedRegistrations.forEach(reg => {
+                    listHtml += `<li>${reg.name}</li>`;
+                });
+                listHtml += '</ul>';
+
+                $('#selectedRegistrationsList').html(listHtml);
+                $('#bulkDeleteModal').modal('show');
+            });
+
+            // Handle bulk delete
+            $('#confirmBulkDelete').click(function() {
+                const registrationIds = selectedRegistrations.map(reg => reg.id);
+
+                $(this).html('<i class="fa fa-spinner fa-spin"></i> Deleting...');
+                $(this).prop('disabled', true);
+
+                $.ajax({
+                    url: "{{ route('postBulkDeleteRegistrations', ['event_id' => $event->id]) }}",
+                    type: 'POST',
+                    data: {
+                        registration_ids: registrationIds,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            registrationIds.forEach(id => {
+                                $('.registration_' + id).fadeOut(function() {
+                                    $(this).remove();
+                                });
+                            });
+
+                            selectedRegistrations = [];
+                            updateBulkActionUI();
+                            $('#selectAll').prop('checked', false);
+                            showMessage('success', response.message);
+                            $('#bulkDeleteModal').modal('hide');
+                        } else {
+                            showMessage('error', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error(xhr);
+                        showMessage('error', 'An error occurred while processing your request');
+                    },
+                    complete: function() {
+                        $('#confirmBulkDelete').html('Delete Registrations');
+                        $('#confirmBulkDelete').prop('disabled', false);
+                    }
+                });
+            });
+
+            // Helper function to show messages
+            function showMessage(type, message) {
+                let alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                let alertHtml = `
+                    <div class="alert ${alertClass} alert-dismissible fade in" role="alert">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        ${message}
+                    </div>
+                `;
+
+                $('.bulk-actions').after(alertHtml);
+
+                setTimeout(function() {
+                    $('.alert').alert('close');
+                }, 5000);
+            }
+
+            // Handle filter form submission
+            $('#filter-form select').change(function() {
+                $('#filter-form').submit();
             });
         });
     </script>

@@ -103,6 +103,16 @@ class Event extends MyBaseModel
     }
 
     /**
+     * The registrations associated with the event.
+     *
+     * @return mixed
+     */
+    public function registrations()
+    {
+        return $this->hasMany(Registration::class);
+    }
+
+    /**
      * The category associated with the event.
      *
      * @return mixed

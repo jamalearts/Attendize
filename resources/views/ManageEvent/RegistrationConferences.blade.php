@@ -16,6 +16,60 @@
 
 @section('head')
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <style>
+        .bulk-actions {
+            display: none;
+            margin-bottom: 10px;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .checkbox-cell {
+            width: 30px;
+            text-align: center;
+        }
+        .select-all-container {
+            margin-bottom: 10px;
+        }
+        .select-all-checkbox {
+            margin-right: 5px;
+        }
+        .bulk-delete-btn {
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            border-radius: 3px;
+            transition: background-color 0.3s;
+        }
+        .bulk-delete-btn:hover {
+            background-color: #c9302c;
+        }
+        .bulk-delete-btn i {
+            margin-right: 5px;
+        }
+        .conference-checkbox {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .not-found-container {
+            text-align: center;
+            padding: 50px 0;
+        }
+        .not-found-icon {
+            font-size: 5em;
+            color: #ccc;
+            margin-bottom: 20px;
+        }
+        .not-found-message {
+            font-size: 2em;
+            margin-top: 10px;
+            color: #777;
+        }
+    </style>
 @stop
 
 @section('menu')
@@ -35,13 +89,17 @@
         </div>
     </div>
     <div class="col-md-3">
-        {!! Form::open(array('url' => route('showEventRegistrationConferences', ['event_id'=>$event->id,'sort_by'=>$sort_by]), 'method' => 'get')) !!}
+        {!! Form::open([
+            'url' => route('showEventRegistrationConferences', ['event_id' => $event->id, 'sort_by' => $sort_by]),
+            'method' => 'get',
+        ]) !!}
         <div class="input-group">
-            <input name='q' value="{{$q or ''}}" placeholder="@lang("Registration.search_tickets")" type="text" class="form-control">
-        <span class="input-group-btn">
-            <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
-        </span>
-            {!!Form::hidden('sort_by', $sort_by)!!}
+            <input name='q' value="{{ $q or '' }}" placeholder="@lang('Registration.search_tickets')" type="text"
+                class="form-control">
+            <span class="input-group-btn">
+                <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
+            </span>
+            {!! Form::hidden('sort_by', $sort_by) !!}
         </div>
         {!! Form::close() !!}
     </div>
@@ -50,12 +108,27 @@
 @section('content')
     <div class="row">
         <div class="col-md-12">
+            <!-- Bulk Actions Area -->
+            <div class="bulk-actions panel panel-default">
+                <div class="panel-body">
+                    <button id="bulkDeleteBtn" class="bulk-delete-btn" disabled>
+                        <i class="ico-trash"></i> Delete Selected Conferences
+                    </button>
+                    <span id="selectedCount" class="text-muted ml-2"></span>
+                </div>
+            </div>
+
             @if ($conferences->count())
                 <div class="panel">
                     <div class="table-responsive">
                         <table class="table">
                             <thead>
                                 <tr>
+                                    <th class="checkbox-cell">
+                                        <label>
+                                            <input type="checkbox" id="selectAll" class="select-all-checkbox">
+                                        </label>
+                                    </th>
                                     <th>{!! Html::sortable_link(trans('Registration.name'), $sort_by, 'name', $sort_order, [
                                         'q' => $q,
                                         'page' => $conferences->currentPage(),
@@ -68,6 +141,7 @@
                                         'q' => $q,
                                         'page' => $conferences->currentPage(),
                                     ]) !!}</th>
+                                    <th>Categories</th>
                                     <th>Professions</th>
                                     <th>Actions</th>
                                 </tr>
@@ -76,13 +150,22 @@
                                 @foreach ($conferences as $conference)
                                     <tr
                                         class="conference_{{ $conference->id }} {{ $conference->status == 'inactive' ? 'danger' : '' }}">
+                                        <td class="checkbox-cell">
+                                            <input type="checkbox" class="conference-checkbox" data-id="{{ $conference->id }}" data-name="{{ $conference->name }}">
+                                        </td>
                                         <td>{{ $conference->name }}</td>
                                         <td>{{ $conference->status }}</td>
                                         <td>{{ $conference->price ?? 'N/A' }}</td>
                                         <td>
-                                            <a data-modal-id="ConferencesCategory" href="javascript:void(0);" class="loadModal"
-                                                data-href="{{route('showEventRegistrationProfessionsConference', ['event_id'=>$event->id ,'conference_id'=>$conference->id])}}"
-                                                >Show Conferences</a>
+                                            <a data-modal-id="CategoriesConference" href="javascript:void(0);"
+                                                class="loadModal"
+                                                data-href="{{ route('showEventRegistrationCategoriesConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">Show
+                                                Categories</a>
+                                        </td>
+                                        <td>
+                                            <a data-modal-id="Professions" href="javascript:void(0);" class="loadModal"
+                                                data-href="{{ route('showEventRegistrationProfessionsConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">Show
+                                                Professions</a>
                                         </td>
                                         <td>
                                             <a data-modal-id="EditConference" href="javascript:void(0);"
@@ -106,12 +189,36 @@
                 @if (!empty($q))
                     @include('Shared.Partials.NoSearchResults')
                 @else
-                    @include('ManageEvent.Partials.AttendeesBlankSlate')
+                    <div class="not-found-container">
+                        <i class="ico-folder-open not-found-icon"></i>
+                        <p class="not-found-message">No conferences found.</p>
+                    </div>
                 @endif
             @endif
         </div>
         <div class="col-md-12">
             {!! $conferences->appends(['sort_by' => $sort_by, 'sort_order' => $sort_order, 'q' => $q])->render() !!}
+        </div>
+    </div>
+
+    <!-- Bulk Delete Confirmation Modal -->
+    <div class="modal fade" id="bulkDeleteModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+                    <h4 class="modal-title">Confirm Bulk Delete</h4>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the selected conferences?</p>
+                    <p class="text-danger"><strong>This action cannot be undone.</strong></p>
+                    <div id="selectedConferencesList" class="well" style="max-height: 200px; overflow-y: auto;"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+                    <button type="button" id="confirmBulkDelete" class="btn btn-danger">Delete Conferences</button>
+                </div>
+            </div>
         </div>
     </div>
 @stop
@@ -124,6 +231,152 @@
                 placeholder: "Select options",
                 allowClear: true
             });
+
+            // Bulk delete functionality
+            let selectedConferences = [];
+
+            // Update UI based on selections
+            function updateBulkActionUI() {
+                if (selectedConferences.length > 0) {
+                    $('.bulk-actions').show();
+                    $('#bulkDeleteBtn').prop('disabled', false);
+                    $('#selectedCount').text(selectedConferences.length + ' conferences selected');
+                } else {
+                    $('.bulk-actions').hide();
+                    $('#bulkDeleteBtn').prop('disabled', true);
+                    $('#selectedCount').text('');
+                }
+            }
+
+            // Handle checkbox clicks
+            $(document).on('change', '.conference-checkbox', function() {
+                const conferenceId = $(this).data('id');
+                const conferenceName = $(this).data('name');
+
+                if ($(this).is(':checked')) {
+                    // Add to selected array if not already there
+                    if (!selectedConferences.some(conf => conf.id === conferenceId)) {
+                        selectedConferences.push({
+                            id: conferenceId,
+                            name: conferenceName
+                        });
+                    }
+                } else {
+                    // Remove from selected array
+                    selectedConferences = selectedConferences.filter(conf => conf.id !== conferenceId);
+
+                    // Uncheck "select all" if any conference is unchecked
+                    $('#selectAll').prop('checked', false);
+                }
+
+                updateBulkActionUI();
+            });
+
+            // Select All checkbox
+            $('#selectAll').change(function() {
+                const isChecked = $(this).is(':checked');
+
+                // Check/uncheck all conference checkboxes
+                $('.conference-checkbox').prop('checked', isChecked);
+
+                // Update selected conferences array
+                selectedConferences = [];
+                if (isChecked) {
+                    $('.conference-checkbox').each(function() {
+                        selectedConferences.push({
+                            id: $(this).data('id'),
+                            name: $(this).data('name')
+                        });
+                    });
+                }
+
+                updateBulkActionUI();
+            });
+
+            // Show confirmation modal when bulk delete button is clicked
+            $('#bulkDeleteBtn').click(function() {
+                // Populate selected conferences list
+                let listHtml = '<ul>';
+                selectedConferences.forEach(conf => {
+                    listHtml += `<li>${conf.name}</li>`;
+                });
+                listHtml += '</ul>';
+
+                $('#selectedConferencesList').html(listHtml);
+                $('#bulkDeleteModal').modal('show');
+            });
+
+            // Handle confirm bulk delete
+            $('#confirmBulkDelete').click(function() {
+                const conferenceIds = selectedConferences.map(conf => conf.id);
+
+                // Show loading state
+                $(this).html('<i class="fa fa-spinner fa-spin"></i> Deleting...');
+                $(this).prop('disabled', true);
+
+                // Send AJAX request
+                $.ajax({
+                    url: "{{ route('postBulkDeleteConferences', ['event_id' => $event->id]) }}",
+                    type: 'POST',
+                    data: {
+                        conference_ids: conferenceIds,
+                        _token: "{{ csrf_token() }}"
+                    },
+                    success: function(response) {
+                        if (response.status === 'success') {
+                            // Remove deleted rows from the table
+                            conferenceIds.forEach(id => {
+                                $('.conference_' + id).fadeOut(function() {
+                                    $(this).remove();
+                                });
+                            });
+
+                            // Reset selection
+                            selectedConferences = [];
+                            updateBulkActionUI();
+                            $('#selectAll').prop('checked', false);
+
+                            // Show success message
+                            showMessage('success', response.message);
+
+                            // Close modal
+                            $('#bulkDeleteModal').modal('hide');
+                        } else {
+                            showMessage('error', response.message);
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error(xhr);
+                        showMessage('error', 'An error occurred while processing your request');
+                    },
+                    complete: function() {
+                        // Reset button state
+                        $('#confirmBulkDelete').html('Delete Conferences');
+                        $('#confirmBulkDelete').prop('disabled', false);
+                    }
+                });
+            });
+
+            // Helper function to show messages
+            function showMessage(type, message) {
+                let alertClass = type === 'success' ? 'alert-success' : 'alert-danger';
+                let alertHtml = `
+                    <div class="alert ${alertClass} alert-dismissible fade in" role="alert">
+                        <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                        ${message}
+                    </div>
+                `;
+
+                // Insert alert at the top of the content area
+                $('.bulk-actions').after(alertHtml);
+
+                // Auto-dismiss after 5 seconds
+                setTimeout(function() {
+                    $('.alert').alert('close');
+                }, 5000);
+            }
         });
     </script>
 @stop

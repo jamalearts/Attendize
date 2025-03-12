@@ -23,6 +23,7 @@ use App\Http\Controllers\EventPromoteController;
 use App\Http\Controllers\EventRegistrationCategoryController;
 use App\Http\Controllers\EventRegistrationConferenceController;
 use App\Http\Controllers\EventRegistrationController;
+use App\Http\Controllers\EventRegistrationProfessionController;
 use App\Http\Controllers\EventSurveyController;
 use App\Http\Controllers\EventTicketsController;
 use App\Http\Controllers\EventViewController;
@@ -347,6 +348,18 @@ Route::group(
                 [EventRegistrationController::class, 'showRegistration']
             )->name('showEventRegistration');
 
+            Route::get('{event_id}/registration/create',
+                [EventRegistrationController::class, 'showCreateRegistration']
+            )->name('showCreateEventRegistration');
+
+            Route::post('{event_id}/registration/create',
+                [EventRegistrationController::class, 'postCreateRegistration']
+            )->name('postCreateEventRegistration');
+
+            Route::post('{event_id}/registration/bulk-delete',
+                [EventRegistrationCategoryController::class,'postBulkDeleteRegistrations']
+            )->name('postBulkDeleteRegistrations');
+
                 /*
                 * ----------
                 * Categories
@@ -380,9 +393,9 @@ Route::group(
                     [EventRegistrationCategoryController::class,'postDeleteCategory']
                 )->name('postDeleteEventRegistrationCategory');
 
-                Route::get('{event_id}/registration/categories/{category_id}/conferences',
-                    [EventRegistrationCategoryController::class, 'showConferencesCategory']
-                )->name('showEventRegistrationConferencesCategory');
+                Route::post('{event_id}/registration/categories/bulk-delete',
+                    [EventRegistrationCategoryController::class,'postBulkDeleteCategories']
+                )->name('postBulkDeleteCategories');
 
 
                 /*
@@ -418,9 +431,26 @@ Route::group(
                     [EventRegistrationConferenceController::class,'postDeleteConference']
                 )->name('postDeleteEventRegistrationConference');
 
+                Route::post('{event_id}/registration/conferences/bulk-delete',
+                    [EventRegistrationConferenceController::class,'postBulkDeleteConferences']
+                )->name('postBulkDeleteConferences');
+
+                Route::get('{event_id}/registration/conferences/{conference_id}/categories',
+                    [EventRegistrationConferenceController::class, 'showCategoriesConference']
+                )->name('showEventRegistrationCategoriesConference');
+
                 Route::get('{event_id}/registration/conferences/{conference_id}/professions',
                     [EventRegistrationConferenceController::class, 'showProfessionsConference']
                 )->name('showEventRegistrationProfessionsConference');
+
+                /*
+                * ----------
+                * Profession
+                * ----------
+                */
+                Route::get('{event_id}/registration/professions/{profession_id}/edit',
+                    [EventRegistrationProfessionController::class, 'showEditProfession']
+                )->name('showEditEventRegistrationProfession');
 
             /*
              * -------

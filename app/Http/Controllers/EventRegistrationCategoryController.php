@@ -6,6 +6,7 @@ use App\Models\Category;
 use App\Models\Conference;
 use App\Models\Event;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Exception;
@@ -44,17 +45,16 @@ class EventRegistrationCategoryController extends MyBaseController
                         ->orWhere('end_date', 'like', $searchQuery . '%');
                 })
                 ->paginate();
-        } else{
+        } else {
             $categories = $event->categories()->orderBy($sort_by, $sort_order)->paginate();
         }
 
-
         $data = [
-            'categories'  => $categories,
-            'event'      => $event,
-            'sort_by'    => $sort_by,
+            'categories' => $categories,
+            'event' => $event,
+            'sort_by' => $sort_by,
             'sort_order' => $sort_order,
-            'q'          => $searchQuery ? $searchQuery : '',
+            'q' => $searchQuery ? $searchQuery : '',
         ];
 
         // Return view.
@@ -69,12 +69,9 @@ class EventRegistrationCategoryController extends MyBaseController
      */
     public function showCreateCategory($event_id)
     {
-        // Get all conference for event
-        $conferences = Conference::where('event_id', $event_id)->pluck('name', 'id')->toArray();
 
         return view('ManageEvent.Modals.CreateCategory', [
             'event' => Event::scope()->find($event_id),
-            'conferences' => $conferences
         ]);
     }
 
@@ -108,10 +105,6 @@ class EventRegistrationCategoryController extends MyBaseController
 
             $category->save();
 
-            if ($request->get('conferences')) {
-                $category->conferences()->attach($request->get('conferences'));
-            }
-
             DB::commit(); // Commit Transaction
 
             session()->flash('message', 'Successfully Created Category');
@@ -129,9 +122,9 @@ class EventRegistrationCategoryController extends MyBaseController
             DB::rollBack(); // Rollback Transaction on Error
 
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Something went wrong! Please try again.',
-                'error'   => $e->getMessage(), // Optional: Show error details for debugging
+                'error' => $e->getMessage(), // Optional: Show error details for debugging
             ]);
         }
     }
@@ -147,12 +140,10 @@ class EventRegistrationCategoryController extends MyBaseController
     public function showEditCategory(Request $request, $event_id, $category_id)
     {
         $category = Category::scope()->findOrFail($category_id);
-        $conferences = Conference::where('event_id', $event_id)->pluck('name', 'id')->toArray();
 
         $data = [
-            'category'     => $category,
-            'event'        => $category->event,
-            'conferences'  => $conferences,
+            'category' => $category,
+            'event' => $category->event,
         ];
 
         return view('ManageEvent.Modals.EditCategory', $data);
@@ -169,8 +160,8 @@ class EventRegistrationCategoryController extends MyBaseController
     public function postEditCategory(Request $request, $event_id, $category_id)
     {
         DB::beginTransaction(); // Start Transaction
-
-        try{
+        // dd($request->all());
+        try {
             $category = Category::scope()->findOrFail($category_id);
 
             if (!$category->validate($request->all())) {
@@ -180,21 +171,28 @@ class EventRegistrationCategoryController extends MyBaseController
                 ]);
             }
 
-            $category->update($request->all());
+            // Ensure correct data format
+            $updateData = [
+                'name'            => $request->input('name'),
+                'max_participants' => $request->input('max_participants'),
+                'status'          => $request->input('status'),
+                'start_date'      => Carbon::parse($request->input('start_date'))->format('Y-m-d H:i'),
+                'end_date'        => Carbon::parse($request->input('end_date'))->format('Y-m-d H:i'),
+                'description'     => $request->input('description'),
+            ];
 
-            if ($request->has('conferences')) {
-                $category->conferences()->sync($request->get('conferences'));
-            }
+
+            $category->update($updateData);
 
             DB::commit(); // Commit Transaction
 
-            session()->flash('message',trans("Successfully Updated Category"));
+            session()->flash('message', trans("Successfully Updated Category"));
 
             return response()->json([
-                'status'       => 'success',
-                'id'           => $category->id,
-                'message'      => trans("Controllers.refreshing"),
-                'redirectUrl'  => route('showEventRegistrationCategories', [
+                'status' => 'success',
+                'id' => $category->id,
+                'message' => trans("Controllers.refreshing"),
+                'redirectUrl' => route('showEventRegistrationCategories', [
                     'event_id' => $event_id,
                 ]),
             ]);
@@ -211,25 +209,6 @@ class EventRegistrationCategoryController extends MyBaseController
     }
 
     /**
-     * Show the 'Conferences Category' modal
-     *
-     * @param Request $request
-     * @param $event_id
-     * @param $category_id
-     * @return View
-     */
-    public function showConferencesCategory(Request $request, $event_id ,$category_id)
-    {
-        $category = Category::scope()->findOrFail($category_id);
-
-        $data = [
-            'category' => $category,
-        ];
-
-        return view('ManageEvent.Modals.ConferencesCategory', $data);
-    }
-
-    /**
      * Show the 'Delete Category' modal
      *
      * @param Request $request
@@ -237,7 +216,7 @@ class EventRegistrationCategoryController extends MyBaseController
      * @param $category_id
      * @return View
      */
-    public function showDeleteCategory(Request $request, $event_id ,$category_id)
+    public function showDeleteCategory(Request $request, $event_id, $category_id)
     {
         $category = Category::scope()->findOrFail($category_id);
 
@@ -257,12 +236,12 @@ class EventRegistrationCategoryController extends MyBaseController
     {
         DB::beginTransaction(); // Start Transaction
 
-        try{
+        try {
             $category = Category::scope()->find($category_id);
 
             /*
-            * Don't allow deletion of category which have been peaple register in this already.
-            */
+             * Don't allow deletion of category which have been peaple register in this already.
+             */
             // if ($category) {
             //     return response()->json([
             //         'status'  => 'error',
@@ -278,13 +257,13 @@ class EventRegistrationCategoryController extends MyBaseController
 
             DB::commit(); // Commit Transaction
 
-            session()->flash('message',trans("Successfully Deleted Category"));
+            session()->flash('message', trans("Successfully Deleted Category"));
 
             return response()->json([
-                'status'       => 'success',
-                'message'      => 'Successfully Deleted Category',
-                'id'           => $category->id,
-                'redirectUrl'  => route('showEventRegistrationCategories', [
+                'status' => 'success',
+                'message' => 'Successfully Deleted Category',
+                'id' => $category->id,
+                'redirectUrl' => route('showEventRegistrationCategories', [
                     'event_id' => $event_id,
                 ]),
             ]);
@@ -292,9 +271,69 @@ class EventRegistrationCategoryController extends MyBaseController
             DB::rollBack(); // Rollback Transaction on Error
 
             return response()->json([
-                'status'  => 'error',
+                'status' => 'error',
                 'message' => 'Something went wrong! Please try again.',
-                'error'   => $e->getMessage(), // Optional: Show error details for debugging
+                'error' => $e->getMessage(), // Optional: Show error details for debugging
+            ]);
+        }
+    }
+
+    /**
+     * Delete multiple categories at once
+     *
+     * @param Request $request
+     * @param int $event_id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function postBulkDeleteCategories(Request $request, $event_id)
+    {
+        // Validate request
+        $request->validate([
+            'category_ids' => 'required|array',
+            'category_ids.*' => 'integer'
+        ]);
+
+        $categoryIds = $request->category_ids;
+        $successCount = 0;
+        $errorCount = 0;
+
+        DB::beginTransaction();
+        try {
+            foreach ($categoryIds as $categoryId) {
+                $category = Category::scope()->find($categoryId);
+
+                // Skip if category doesn't exist or belongs to another event
+                if (!$category) {
+                    $errorCount++;
+                    continue;
+                }
+
+                // Delete the category safely
+                $category->conferences()->detach();
+                $category->delete();
+                $successCount++;
+            }
+
+            DB::commit();
+
+            $message = $successCount > 0
+                ? "Successfully deleted {$successCount} categories"
+                : "No categories were deleted";
+
+            return response()->json([
+                'status' => 'success',
+                'message' => $message,
+                'counts' => [
+                    'success' => $successCount,
+                    'error' => $errorCount
+                ]
+            ]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Something went wrong! Please try again.',
+                'error' => $e->getMessage() // Optional: Show error details for debugging
             ]);
         }
     }

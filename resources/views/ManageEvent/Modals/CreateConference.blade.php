@@ -43,6 +43,17 @@
                             ]) !!}
                         </div>
 
+                        <div class="form-group">
+                            {!! Form::label('categories', trans('Registration.categories'), ['class' => 'control-label required']) !!}
+                            {!! Form::select(
+                                'categories[]',
+                                $categories,
+                                old('categories'),
+                                ['class' => 'form-control select2-multi', 'multiple' => 'multiple', 'style' => 'width: 100%'],
+                            ) !!}
+                            <small class="help-block">@lang('Registration.select_multiple_categories')</small>
+                        </div>
+
                         {{-- Dynamic Profession Input Section --}}
                         <div class="form-group">
                             {!! Form::label('professions', trans('Registration.professions'), ['class' => 'control-label']) !!}
@@ -91,6 +102,7 @@
     {!! Form::close() !!}
 </div>
 
+{{-- Import sweetalert2 and Add Dynamic input for Add profession --}}
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     $(document).ready(function() {
@@ -165,6 +177,7 @@
 </script>
 
 <style>
+    /* Profession */
     .profession-tag {
         display: inline-flex;
         align-items: center;
@@ -176,4 +189,66 @@
         margin-left: 5px;
         opacity: 1;
     }
+
+    /* Fix for Select2 width issues */
+    .select2-container {
+        width: 100% !important;
+    }
+
+    .select2-container--default .select2-selection--multiple {
+        width: 100% !important;
+        min-height: 34px;
+        border-color: #ccc;
+    }
+
+    .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+        width: 100%;
+    }
+
+    /* Fix for modal z-index issues with Select2 dropdowns */
+    .select2-container--open {
+        z-index: 9999;
+    }
 </style>
+
+{{-- Import select2 and Initialize Select2 --}}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        // Initialize Select2 for static elements
+        initSelect2();
+
+        // Initialize Select2 when modal is shown
+        $(document).on('shown.bs.modal', function() {
+            setTimeout(initSelect2, 100);
+        });
+
+        // Function to initialize Select2
+        function initSelect2() {
+            $('.select2-multi').select2({
+                placeholder: "Select options",
+                allowClear: true,
+                width: '100%',
+                dropdownParent: $('.modal.show').length ? $('.modal.show') : $('body')
+            });
+        }
+
+        // Handle loadModal events
+        $(document).on('click', '.loadModal', function() {
+            var modal_id = $(this).data('modal-id');
+            var modal_url = $(this).data('href');
+
+            $.ajax({
+                url: modal_url,
+                success: function(data) {
+                    $('#' + modal_id).remove();
+                    $('body').append(data);
+                    $('#' + modal_id).modal('show');
+
+                    // Initialize Select2 after modal content is loaded
+                    setTimeout(initSelect2, 300);
+                }
+            });
+        });
+    });
+</script>

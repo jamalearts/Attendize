@@ -11,7 +11,7 @@
             <div class="modal-body">
                 <div class="row">
                     <div class="col-md-12">
-                        @if($conference->professions)
+                        @if($conference->professions->count())
                             <div class="conferences-grid">
                                 <div class="row">
                                     @foreach($conference->professions as $profession)
