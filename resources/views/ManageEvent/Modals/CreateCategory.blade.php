@@ -24,20 +24,7 @@
                         </div>
 
                         <div class="row">
-                            <div class="col-sm-6">
-                                <div class="form-group">
-                                    {!! Form::label('max_participants', trans('Registration.max_participants'), [
-                                        'class' => 'control-label',
-                                    ]) !!}
-                                    {!! Form::number('max_participants', old('max_participants'), [
-                                        'class' => 'form-control',
-                                        'placeholder' => trans('Registration.max_participants_placeholder'),
-                                    ]) !!}
-
-                                </div>
-                            </div>
-
-                            <div class="col-sm-6">
+                            <div class="col-sm-12">
                                 <div class="form-group">
                                     {!! Form::label('status', trans('Registration.category_status'), ['class' => 'control-label required']) !!}
                                     {!! Form::select(

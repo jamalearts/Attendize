@@ -37,6 +37,7 @@ use App\Http\Controllers\OrganiserCustomizeController;
 use App\Http\Controllers\OrganiserDashboardController;
 use App\Http\Controllers\OrganiserEventsController;
 use App\Http\Controllers\OrganiserViewController;
+use App\Http\Controllers\RegistrationUsersController;
 use App\Http\Controllers\RemindersController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserLoginController;
@@ -168,6 +169,10 @@ Route::group(
         Route::post('/{event_id}/show_hidden',
             [EventViewController::class, 'postShowHiddenTickets']
         )->name('postShowHiddenTickets');
+
+        Route::get('/{event_id}/{event_slug?}/registration/{registration_id}',
+            [EventRegistrationController::class, 'showRegistrationForm']
+        )->name('showEventRegistrationForm');
 
         /*
          * Used for previewing designs in the backend. Doesn't log page views etc.
@@ -344,21 +349,69 @@ Route::group(
              * Registration
              * -------
             */
-            Route::get('{event_id}/registration',
+            Route::get('{event_id}/registrations',
                 [EventRegistrationController::class, 'showRegistration']
             )->name('showEventRegistration');
 
-            Route::get('{event_id}/registration/create',
+            Route::get('{event_id}/registrations/create',
                 [EventRegistrationController::class, 'showCreateRegistration']
             )->name('showCreateEventRegistration');
 
-            Route::post('{event_id}/registration/create',
+            Route::post('{event_id}/registrations/create',
                 [EventRegistrationController::class, 'postCreateRegistration']
             )->name('postCreateEventRegistration');
 
-            Route::post('{event_id}/registration/bulk-delete',
-                [EventRegistrationCategoryController::class,'postBulkDeleteRegistrations']
+            Route::post('{event_id}/registrations/bulk-delete',
+                [EventRegistrationController::class,'postBulkDeleteRegistrations']
             )->name('postBulkDeleteRegistrations');
+
+            Route::get('/event/{event_id}/registrations/{registration_id}/details',
+                [EventRegistrationController::class ,'showRegistrationDetails' ]
+            )->name('showEventRegistrationDetails');
+
+            Route::get('/event/{event_id}/registrations/{registration_id}/edit',
+                [EventRegistrationController::class ,'showEditRegistration' ]
+            )->name('showEditEventRegistration');
+
+            Route::post('/event/{event_id}/registrations/{registration_id}/edit',
+                [EventRegistrationController::class ,'postEditRegistration' ]
+            )->name('postEditRegistration');
+
+            Route::get('/event/{event_id}/registrations/{registration_id}/delete',
+                [EventRegistrationController::class ,'showDeleteRegistration' ]
+            )->name('showDeleteEventRegistration');
+
+            Route::delete('/event/{event_id}/registrations/{registration_id}',
+                [EventRegistrationController::class ,'postDeleteRegistration' ]
+            )->name('postDeleteRegistration');
+
+            Route::post('/event/{event_id}/registrations/bulk-delete',
+                [EventRegistrationController::class ,'postBulkDeleteRegistrations' ]
+            )->name('postBulkDeleteRegistrations');
+
+            Route::get('/event/{event_id}/registrations/users',
+                [RegistrationUsersController::class, 'showEventRegistrationUsers']
+            )->name('showEventRegistrationUsers');
+
+            Route::get('/event/{event_id}/registrations/{registration_id}/users',
+                [RegistrationUsersController::class, 'showRegistrationUsers']
+            )->name('showRegistrationUsers');
+
+            Route::post('/event/{event_id}/registrations/users/{user_id}/status',
+                [RegistrationUsersController::class, 'updateUserStatus']
+            )->name('updateUserStatus');
+
+            Route::delete('/event/{event_id}/registrations/users/{user_id}',
+                [RegistrationUsersController::class, 'deleteUser']
+            )->name('deleteUser');
+
+            Route::post('/event/{event_id}/registrations/users/bulk',
+                [RegistrationUsersController::class, 'bulkUpdateUsers']
+            )->name('bulkUpdateUsers');
+
+            Route::get('/event/{event_id}/registrations/users/{user_id}/details',
+                [RegistrationUsersController::class, 'getUserDetails']
+            )->name('getUserDetails');
 
                 /*
                 * ----------

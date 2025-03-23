@@ -39,7 +39,7 @@ class EventViewController extends Controller
      */
     public function showEventHome(Request $request, $event_id, $slug = '', $preview = false)
     {
-        $event = Event::findOrFail($event_id);
+        $event = Event::with('registrations.category.conferences.professions')->findOrFail($event_id);
 
         if (!Utils::userOwns($event) && !$event->is_live) {
             return view('Public.ViewEvent.EventNotLivePage');
@@ -50,6 +50,7 @@ class EventViewController extends Controller
             'tickets' => $event->tickets()->orderBy('sort_order', 'asc')->get(),
             'is_embedded' => 0,
         ];
+
         /*
          * Don't record stats if we're previewing the event page from the backend or if we own the event.
          */

@@ -19,11 +19,10 @@ class CreateCategoriesTable extends Migration
             $table->unsignedInteger('account_id')->index();
             $table->unsignedInteger('user_id');
             $table->string('name');
-            $table->integer('max_participants')->nullable();
             $table->enum('status', ['active', 'inactive'])->default('active');
             $table->text('description')->nullable();
             $table->dateTime('start_date')->nullable();
-            $table->datdateTimee('end_date')->nullable();
+            $table->dateTime('end_date')->nullable();
             $table->timestamps();
 
             // Add foreign key

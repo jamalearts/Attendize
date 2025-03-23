@@ -13,6 +13,7 @@ class Registration extends MyBaseModel
         'start_date',
         'end_date',
         'approval_status',
+        'max_participants'
     ];
 
     public function rules()
@@ -21,11 +22,11 @@ class Registration extends MyBaseModel
         $event = Event::find(request()->route('event_id'));
 
         return [
-            'categories' => 'required|array',
-            'categories.*' => 'required|exists:categories,id',
+            'category_id' => 'required|exists:categories,id',
             'name' => 'required|max:255',
             'image' => 'nullable|image|max:10240',
             'status' => 'required|in:active,inactive',
+            'max_participants' => 'required|integer|min:1',
             'start_date' => [
                 'required',
                 "date_format:{$format}",
@@ -77,10 +78,9 @@ class Registration extends MyBaseModel
         return $this->belongsTo(User::class);
     }
 
-    public function categories()
+    public function category()
     {
-        return $this->belongsToMany(Category::class, 'category_registration')
-            ->withTimestamps();
+        return $this->belongsTo(Category::class);
     }
 
     public function event()
@@ -93,4 +93,29 @@ class Registration extends MyBaseModel
         return $this->belongsToMany(User::class, 'registration_users')
             ->withTimestamps();
     }
+
+    /**
+     * Get the registration users for the registration.
+     */
+    public function registrationUsers()
+    {
+        return $this->hasMany(RegistrationUser::class);
+    }
+
+    /**
+     * Get the dynamic form fields for the registration.
+     */
+    public function dynamicFormFields()
+    {
+        return $this->hasMany(DynamicFormField::class)->orderBy('sort_order');
+    }
+
+        /**
+     * Get the active dynamic form fields for the registration.
+     */
+    public function activeFormFields()
+    {
+        return $this->dynamicFormFields()->where('is_active', true)->orderBy('sort_order');
+    }
+    
 }

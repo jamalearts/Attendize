@@ -131,9 +131,6 @@
                                 {!!Html::sortable_link(trans("Registration.name"), $sort_by, 'name', $sort_order, ['q' => $q , 'page' => $categories->currentPage()])!!}
                                 </th>
                                 <th>
-                                {!!Html::sortable_link(trans("Registration.max_participants"), $sort_by, 'max_participants', $sort_order, ['q' => $q , 'page' => $categories->currentPage()])!!}
-                                </th>
-                                <th>
                                 {!!Html::sortable_link(trans("Registration.status"), $sort_by, 'status', $sort_order, ['q' => $q , 'page' => $categories->currentPage()])!!}
                                 </th>
                                 <th>
@@ -152,9 +149,6 @@
                                     <input type="checkbox" class="category-checkbox" data-id="{{$category->id}}" data-name="{{$category->name}}">
                                 </td>
                                 <td>{{{$category->name}}}</td>
-                                <td>
-                                    {{{$category->max_participants ?? 'N/A'}}}
-                                </td>
                                 <td>
                                     {{{$category->status}}}
                                 </td>

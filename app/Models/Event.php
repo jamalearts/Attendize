@@ -428,6 +428,11 @@ ICSTemplate;
         //return URL::to('/') . '/e/' . $this->id . '/' . Str::slug($this->title);
     }
 
+    public function getSlugAttribute()
+    {
+        return Str::slug($this->title);
+    }
+
     /**
      * @param  integer  $accessCodeId
      * @return bool

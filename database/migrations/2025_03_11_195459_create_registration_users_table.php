@@ -26,6 +26,7 @@ class CreateRegistrationUsersTable extends Migration
             $table->string('email');
             $table->string('phone')->nullable();
             $table->enum('status', ['pending', 'approved', 'rejected'])->default('pending');
+            $table->boolean('is_new')->default(false);
             $table->timestamps();
 
             // Foreign keys

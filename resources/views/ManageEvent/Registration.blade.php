@@ -137,6 +137,126 @@
             background-color: #dc3545;
             color: white;
         }
+
+        /* Add these new styles */
+        .notification-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background-color: #ff4136;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .position-relative {
+            position: relative;
+        }
+
+        .register-btn {
+            margin-left: 10px;
+            padding: 2px 8px;
+            font-size: 12px;
+        }
+
+        .page-title-buttons {
+            display: inline-block;
+            margin-left: 20px;
+        }
+
+        .badge-notification {
+            background-color: #ff4136;
+            color: white;
+            border-radius: 50%;
+            padding: 3px 6px;
+            font-size: 10px;
+            position: relative;
+            top: -8px;
+            left: -5px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .users-count-cell {
+            position: relative;
+        }
+
+        .users-count-btn {
+            position: relative;
+            padding-right: 25px;
+        }
+
+        .users-count-btn .badge-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+
+        .notification-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #ff4136;
+            border-radius: 50%;
+            margin-left: 5px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .page-title-buttons {
+            display: inline-block;
+            margin-left: 20px;
+        }
+
+        .badge-notification {
+            background-color: #ff4136;
+            color: white;
+            border-radius: 50%;
+            padding: 3px 6px;
+            font-size: 10px;
+            position: relative;
+            top: -8px;
+            left: -5px;
+            min-width: 18px;
+            text-align: center;
+        }
+
+        .users-count-cell {
+            position: relative;
+        }
+
+        .users-count-btn {
+            position: relative;
+            padding-right: 25px;
+        }
+
+        .users-count-btn .badge-notification {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 65, 54, 0.7);
+            }
+
+            70% {
+                transform: scale(1);
+                box-shadow: 0 0 0 5px rgba(255, 65, 54, 0);
+            }
+
+            100% {
+                transform: scale(0.95);
+                box-shadow: 0 0 0 0 rgba(255, 65, 54, 0);
+            }
+        }
     </style>
 @stop
 
@@ -166,19 +286,16 @@
         </div>
     </div>
     <div class="col-md-3">
-        {!! Form::open([
-            'url' => route('showEventRegistration', ['event_id' => $event->id]),
-            'method' => 'get',
-            'id' => 'search-form',
-        ]) !!}
-        <div class="input-group">
-            <input name='q' value="{{ $q ?? '' }}" placeholder="@lang('Registration.search_registrations')" type="text"
-                class="form-control">
-            <span class="input-group-btn">
-                <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
-            </span>
-        </div>
-        {!! Form::close() !!}
+        <i class="ico-file-text"></i>
+        @lang('Registration.registrations')
+        <span class="page-title-buttons">
+            <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}" class="btn btn-sm btn-success">
+                <i class="ico-users"></i> All Users
+                @if($newRegistrationsCount > 0)
+                    <span class="badge badge-notification">{{ $newRegistrationsCount }}</span>
+                @endif
+            </a>
+        </span>
     </div>
 @stop
 
@@ -186,9 +303,11 @@
     <div class="row">
         <div class="col-md-12">
             <!-- Filters -->
-            <div class="filter-section">
-                <form id="filter-form" class="form-inline">
-                    <select name="status" class="form-control" onchange="this.form.submit()">
+            <div class="row">
+                <div class="col-md-9">
+                    <div class="filter-section">
+                        <form id="filter-form" class="form-inline">
+                            <select name="status" class="form-control" onchange="this.form.submit()">
                         <option value="">All Status</option>
                         <option value="active" {{ request('status') == 'active' ? 'selected' : '' }}>Active</option>
                         <option value="inactive" {{ request('status') == 'inactive' ? 'selected' : '' }}>Inactive</option>
@@ -196,12 +315,31 @@
 
                     <select name="approval_status" class="form-control" onchange="this.form.submit()">
                         <option value="">All Approval Status</option>
-                        <option value="automatic" {{ request('approval_status') == 'automatic' ? 'selected' : '' }}>Automatic
+                        <option value="automatic" {{ request('approval_status') == 'automatic' ? 'selected' : '' }}>
+                            Automatic
                         </option>
                         <option value="manual" {{ request('approval_status') == 'manual' ? 'selected' : '' }}>Manual
                         </option>
                     </select>
-                </form>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    {!! Form::open([
+                        'url' => route('showEventRegistration', ['event_id' => $event->id]),
+                        'method' => 'get',
+                        'id' => 'search-form',
+                    ]) !!}
+                    <div class="input-group">
+                        <input name='q' value="{{ $q ?? '' }}" placeholder="@lang('Registration.search_registrations')" type="text"
+                            class="form-control">
+                        <span class="input-group-btn">
+                            <button class="btn btn-default" type="submit"><i class="ico-search"></i></button>
+                        </span>
+                    </div>
+                    {!! Form::close() !!}
+                </div>
             </div>
 
             <!-- Bulk Actions Area -->
@@ -226,7 +364,10 @@
                                     <th>
                                         {!! Html::sortable_link('Image & Name', $sort_by, 'name', $sort_order, ['q' => $q]) !!}
                                     </th>
-                                    <th>Categories</th>
+                                    <th>Category</th>
+                                    <th>
+                                        {!! Html::sortable_link('Max Participants', $sort_by, 'max_participants', $sort_order, ['q' => $q]) !!}
+                                    </th>
                                     <th>
                                         {!! Html::sortable_link('Status', $sort_by, 'status', $sort_order, ['q' => $q]) !!}
                                     </th>
@@ -252,14 +393,19 @@
                                                 data-id="{{ $reg->id }}" data-name="{{ $reg->name }}">
                                         </td>
                                         <td>
-                                            <img src="{{ $reg->image_path ?? 'default-image-path.jpg' }}"
-                                                alt="{{ $reg->name }}" class="registration-image">
+                                            @if ($reg->image)
+                                                <img src="{{ asset('storage/' . $reg->image) }}" alt="{{ $reg->name }}"
+                                                    class="registration-image">
+                                            @endif
                                             <span class="ml-2">{{ $reg->name }}</span>
                                         </td>
                                         <td>
-                                            @foreach ($reg->categories as $category)
-                                                <span class="badge">{{ $category->name }}</span>
-                                            @endforeach
+                                            {{-- @foreach ($reg->categories as $category) --}}
+                                            <span class="badge">{{ $reg->category->name }}</span>
+                                            {{-- @endforeach --}}
+                                        </td>
+                                        <td>
+                                            {{{$reg->max_participants ?? 'N/A'}}}
                                         </td>
                                         <td>
                                             <span
@@ -274,20 +420,32 @@
                                                 {{ ucfirst($reg->approval_status) }}
                                             </span>
                                         </td>
-                                        <td>{{ $reg->users_count }}</td>
-                                        <td>
-                                            <a
-                                            {{-- href="{{ route('showEventRegistrationDetails', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
-                                                class="btn btn-xs btn-success">
-                                                <i class="ico-eye"></i> View
+                                        <td class="users-count-cell">
+                                            <a href="{{ route('showRegistrationUsers', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" class="btn btn-xs btn-info users-count-btn">
+                                                <i class="ico-users"></i> {{ $reg->users_count }}
+                                                @if($reg->new_users_count > 0)
+                                                    <span class="badge badge-notification">{{ $reg->new_users_count }}</span>
+                                                @endif
                                             </a>
-                                            <a data-modal-id="EditRegistration" href="javascript:void(0);"
-                                                {{-- data-href="{{ route('showEditEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
+                                        </td>
+                                        <td>
+                                            <!-- View button -->
+                                            <a data-modal-id="ViewRegistration"
+                                                href="{{ route('showEventRegistrationDetails', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}"
+                                                class="btn btn-xs btn-success">
+                                            <i class="ico-eye"></i> View
+                                            </a>
+
+                                            <!-- Edit button -->
+                                            <a href="javascript:void(0);" data-modal-id="EditRegistration"
+                                                data-href="{{ route('showEditEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}"
                                                 class="loadModal btn btn-xs btn-primary">
                                                 <i class="ico-edit"></i> Edit
                                             </a>
-                                            <a data-modal-id="DeleteRegistration" href="javascript:void(0);"
-                                                {{-- data-href="{{ route('showDeleteEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" --}}
+
+                                            <!-- Delete button -->
+                                            <a href="javascript:void(0);" data-modal-id="DeleteRegistration"
+                                                data-href="{{ route('showDeleteEventRegistration', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}"
                                                 class="loadModal btn btn-xs btn-danger">
                                                 <i class="ico-trash"></i> Delete
                                             </a>

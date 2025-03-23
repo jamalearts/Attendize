@@ -8,7 +8,7 @@ use Illuminate\Validation\Rule;
 class Category extends MyBaseModel
 {
 
-    protected $fillable = ['name', 'max_participants', 'status', 'description', 'start_date', 'end_date'];
+    protected $fillable = ['name', 'status', 'description', 'start_date', 'end_date'];
 
     protected $casts = [
         'start_date' => 'datetime',
@@ -28,7 +28,6 @@ class Category extends MyBaseModel
         return [
             'name' => 'required',
             'status' => 'required|in:active,inactive',
-            'max_participants' => 'nullable|integer',
             'description' => 'nullable',
             'start_date' => [
                 'required',
@@ -69,7 +68,6 @@ class Category extends MyBaseModel
      */
     public $messages = [
         'name.required' => 'You must at least give a name for your category. (e.g Early Registration)',
-        'max_participants.integer' => 'Please ensure the max participants available is a number.',
     ];
     protected $perPage = 10;
 

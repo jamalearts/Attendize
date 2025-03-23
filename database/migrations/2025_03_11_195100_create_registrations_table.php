@@ -18,8 +18,10 @@ class CreateRegistrationsTable extends Migration
             $table->unsignedInteger('user_id');
             $table->unsignedInteger('account_id')->index();
             $table->unsignedInteger('event_id');
+            $table->unsignedInteger('category_id');
             $table->string('name');
             $table->string('image')->nullable();
+            $table->integer('max_participants')->nullable();
             $table->dateTime('start_date');
             $table->dateTime('end_date');
             $table->enum('approval_status', ['automatic', 'manual'])->default('manual');
@@ -27,6 +29,7 @@ class CreateRegistrationsTable extends Migration
             $table->timestamps();
 
             // Forign keys
+            $table->foreign('category_id')->references('id')->on('categories')->onDelete('cascade');
             $table->foreign('account_id')->references('id')->on('accounts')->onDelete('cascade');
             $table->foreign('user_id')->references('id')->on('users');
             $table->foreign('event_id')->references('id')->on('events')->onDelete('cascade');

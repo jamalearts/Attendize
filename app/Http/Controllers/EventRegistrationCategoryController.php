@@ -21,7 +21,7 @@ class EventRegistrationCategoryController extends MyBaseController
     public function showCategories(Request $request, $event_id)
     {
 
-        $allowed_sorts = ['name', 'max_participants', 'status', 'start_date', 'end_date'];
+        $allowed_sorts = ['name', 'status', 'start_date', 'end_date'];
 
         // Getting get parameters.
         $searchQuery = $request->get('q');
@@ -39,7 +39,6 @@ class EventRegistrationCategoryController extends MyBaseController
             $categories = $event->categories()
                 ->where(function ($query) use ($searchQuery) {
                     $query->where('name', 'like', $searchQuery . '%')
-                        ->orWhere('max_participants', 'like', $searchQuery . '%')
                         ->orWhere('status', 'like', $searchQuery . '%')
                         ->orWhere('start_date', 'like', $searchQuery . '%')
                         ->orWhere('end_date', 'like', $searchQuery . '%');
@@ -97,7 +96,6 @@ class EventRegistrationCategoryController extends MyBaseController
 
             $category->event_id = $event_id;
             $category->name = $request->get('name');
-            $category->max_participants = $request->get('max_participants') ?: null;
             $category->status = $request->get('status');
             $category->start_date = $request->get('start_date');
             $category->end_date = $request->get('end_date');
@@ -174,7 +172,6 @@ class EventRegistrationCategoryController extends MyBaseController
             // Ensure correct data format
             $updateData = [
                 'name'            => $request->input('name'),
-                'max_participants' => $request->input('max_participants'),
                 'status'          => $request->input('status'),
                 'start_date'      => Carbon::parse($request->input('start_date'))->format('Y-m-d H:i'),
                 'end_date'        => Carbon::parse($request->input('end_date'))->format('Y-m-d H:i'),
