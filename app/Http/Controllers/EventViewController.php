@@ -4,9 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Attendize\Utils;
 use App\Models\Affiliate;
+use App\Models\DynamicFormFieldValue;
 use App\Models\Event;
 use App\Models\EventAccessCodes;
 use App\Models\EventStats;
+use App\Models\RegistrationUser;
 use Auth;
 use Cookie;
 use Illuminate\Http\Request;
@@ -67,8 +69,8 @@ class EventViewController extends Controller
 
             if ($affiliate_ref) {
                 $affiliate = Affiliate::firstOrNew([
-                    'name'       => $request->get('ref'),
-                    'event_id'   => $event_id,
+                    'name' => $request->get('ref'),
+                    'event_id' => $event_id,
                     'account_id' => $event->account_id,
                 ]);
 
@@ -104,16 +106,16 @@ class EventViewController extends Controller
     public function postContactOrganiser(Request $request, $event_id)
     {
         $rules = [
-            'name'                  => 'required',
-            'email'                 => 'required|email',
-            'message'               => 'required',
+            'name' => 'required',
+            'email' => 'required|email',
+            'message' => 'required',
         ];
 
         $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json([
-                'status'   => 'error',
+                'status' => 'error',
                 'messages' => $validator->messages()->toArray(),
             ]);
         }
@@ -129,21 +131,21 @@ class EventViewController extends Controller
         $event = Event::findOrFail($event_id);
 
         $data = [
-            'sender_name'     => $request->get('name'),
-            'sender_email'    => $request->get('email'),
+            'sender_name' => $request->get('name'),
+            'sender_email' => $request->get('email'),
             'message_content' => clean($request->get('message')),
-            'event'           => $event,
+            'event' => $event,
         ];
 
-        Mail::send(Lang::locale().'.Emails.messageReceived', $data, function ($message) use ($event, $data) {
+        Mail::send(Lang::locale() . '.Emails.messageReceived', $data, function ($message) use ($event, $data) {
             $message->to($event->organiser->email, $event->organiser->name)
                 ->from(config('attendize.outgoing_email_noreply'), $data['sender_name'])
                 ->replyTo($data['sender_email'], $data['sender_name'])
-                ->subject(trans("Email.message_regarding_event", ["event"=>$event->title]));
+                ->subject(trans("Email.message_regarding_event", ["event" => $event->title]));
         });
 
         return response()->json([
-            'status'  => 'success',
+            'status' => 'success',
             'message' => trans("Controllers.message_successfully_sent"),
         ]);
     }
@@ -181,7 +183,7 @@ class EventViewController extends Controller
             ->where('is_hidden', true)
             ->orderBy('sort_order', 'asc')
             ->get()
-            ->filter(function($ticket) use ($accessCode) {
+            ->filter(function ($ticket) use ($accessCode) {
                 // Only return the hidden tickets that match the access code
                 return ($ticket->event_access_codes()->where('code', $accessCode)->get()->count() > 0);
             });
@@ -202,4 +204,177 @@ class EventViewController extends Controller
             'is_embedded' => 0,
         ]);
     }
+
+    /**
+     * Show the registration form for an event
+     *
+     * @param Request $request
+     * @param $event_id
+     * @param $event_slug
+     * @param $registration_id
+     * @return mixed
+     */
+    public function showEventRegistrationForm(Request $request, $event_id, $event_slug, $registration_id)
+    {
+        $event = Event::with('registrations.category.conferences.professions')->findOrFail($event_id);
+        $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
+
+        if (!$event->is_live) {
+            return view('Public.ViewEvent.EventNotLivePage');
+        }
+
+        if ($registration->end_date < now() || $registration->status == 'inactive') {
+            return redirect()->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event_slug])
+                ->with('error', 'Registration period has ended for this option.');
+        }
+
+        $data = [
+            'event' => $event,
+            'registration' => $registration,
+        ];
+
+        return view('Public.ViewEvent.Partials.EventRegistrationForm', $data);
+    }
+
+/**
+ * Process the registration form submission
+ *
+ * @param Request $request
+ * @param $event_id
+ * @param $registration_id
+ * @return mixed
+ */
+public function postEventRegistration(Request $request, $event_id, $registration_id)
+{
+
+    
+    $event = Event::findOrFail($event_id);
+    $registration = Event::findOrFail($event_id)->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
+
+    // Check if registration is active and not expired
+    if ($registration->end_date < now() || $registration->status == 'inactive') {
+        return redirect()->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
+            ->with('error', 'This registration option is no longer available.');
+    }
+
+    // Validate basic fields
+    $rules = [
+        'first_name' => 'required|string|max:255',
+        'last_name' => 'required|string|max:255',
+        'email' => 'required|email|max:255',
+        'phone' => 'nullable|string|max:20',
+    ];
+
+    // Add conference validation if applicable
+    if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
+        $rules['conference_id'] = 'required|exists:conferences,id';
+        $rules['profession_id'] = 'required|exists:professions,id';
+
+        // Verify the conference is active
+        $conferenceId = $request->input('conference_id');
+        $conference = $registration->category->conferences->where('id', $conferenceId)->first();
+
+        if (!$conference || $conference->status != 'active') {
+            return redirect()->back()
+                ->with('error', 'The selected conference is no longer available.')
+                ->withInput();
+        }
+    }
+
+    // Add validation rules for dynamic form fields
+    foreach ($registration->dynamicFormFields as $field) {
+        $fieldRules = [];
+
+        if ($field->is_required) {
+            $fieldRules[] = 'required';
+        } else {
+            $fieldRules[] = 'nullable';
+        }
+
+        if ($field->type == 'file') {
+            $fieldRules[] = 'file';
+            $fieldRules[] = 'max:10240'; // 10MB max file size
+        } elseif ($field->type == 'email') {
+            $fieldRules[] = 'email';
+        } elseif ($field->type == 'date') {
+            $fieldRules[] = 'date';
+        }
+
+        $rules['fields.' . $field->id] = implode('|', $fieldRules);
+    }
+
+    $validator = Validator::make($request->all(), $rules);
+
+    if ($validator->fails()) {
+        return redirect()->back()
+            ->withErrors($validator)
+            ->withInput();
+    }
+
+    // Create the registration user
+    $registrationUser = new RegistrationUser([
+        'category_id' => $registration->category_id,
+        'conference_id' => $request->input('conference_id'),
+        'profession_id' => $request->input('profession_id'),
+        'registration_id' => $registration->id,
+        'first_name' => $request->input('first_name'),
+        'last_name' => $request->input('last_name'),
+        'email' => $request->input('email'),
+        'phone' => $request->input('phone'),
+        'status' => 'pending',
+        'is_new' => true,
+    ]);
+
+    // Save the registration user and ensure we have an ID before proceeding
+    $registrationUser->save();
+
+    // Make sure the registration user was saved and has an ID
+    if (!$registrationUser->id) {
+        \Log::error('Failed to save registration user', [
+            'data' => $request->all(),
+            'registration_id' => $registration->id
+        ]);
+        return redirect()->back()
+            ->with('error', 'There was a problem processing your registration. Please try again.')
+            ->withInput();
+    }
+
+    // Save form responses
+    if ($request->has('fields')) {
+        foreach ($request->input('fields') as $fieldId => $value) {
+            $field = $registration->dynamicFormFields()->find($fieldId);
+
+            if ($field) {
+                // Handle file uploads
+                if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
+                    $file = $request->file('fields.' . $fieldId);
+                    $path = $file->store('form-uploads', 'public');
+                    $value = $path;
+                }
+
+                try {
+                    // Create form response using DynamicFormFieldValue
+                    $formFieldValue = new DynamicFormFieldValue();
+                    $formFieldValue->registration_user_id = $registrationUser->id;
+                    $formFieldValue->field_id = $fieldId;
+                    $formFieldValue->value = $value;
+                    $formFieldValue->save();
+                } catch (\Exception $e) {
+                    \Log::error('Failed to save form field value', [
+                        'error' => $e->getMessage(),
+                        'registration_user_id' => $registrationUser->id,
+                        'field_id' => $fieldId,
+                        'value' => $value
+                    ]);
+                }
+            }
+        }
+    }
+
+    // Send confirmation email
+    // Mail::to($registrationUser->email)->send(new RegistrationConfirmation($registrationUser));
+
+    return redirect()->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
+        ->with('success', 'Your registration has been submitted successfully. You will receive a confirmation email shortly.');
+}
 }

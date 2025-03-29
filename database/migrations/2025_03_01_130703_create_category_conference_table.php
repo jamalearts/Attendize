@@ -17,11 +17,12 @@ class CreateCategoryConferenceTable extends Migration
             $table->increments('id');
             $table->unsignedInteger('category_id');
             $table->unsignedInteger('conference_id');
+            $table->decimal('price', 10, 2)->default(0);
+            $table->timestamps();
 
             // Add foreign key
             $table->foreign('category_id')->references('id')->on('categories');
             $table->foreign('conference_id')->references('id')->on('conferences');
-            $table->timestamps();
         });
     }
 

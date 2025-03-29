@@ -33,25 +33,24 @@
                         </div>
 
                         <div class="form-group">
-                            {!! Form::label('price', 'Conference Price', ['class' => 'control-label required']) !!}
-                            {!! Form::number('price', $conference->price, [
-                                'class' => 'form-control',
-                                'placeholder' => 'Enter conference price',
-                                'step' => '0.01',
-                                'required' => 'required',
-                            ]) !!}
-                        </div>
-
-                        <div class="form-group">
                             {!! Form::label('categories', trans('Registration.categories'), [
                                 'class' => 'control-label required',
                             ]) !!}
                             {!! Form::select('categories[]', $categories, $conference->categories()->pluck('categories.id')->toArray(), [
                                 'class' => 'form-control select2-multi',
+                                'id' => 'categories-select',
                                 'multiple' => 'multiple',
                                 'style' => 'width: 100%',
                             ]) !!}
                             <small class="help-block">@lang('Registration.select_multiple_categories')</small>
+                        </div>
+
+                        <!-- Category-specific prices -->
+                        <div id="category-prices-container" class="mt-3 mb-3">
+                            <h5>Category-Specific Prices</h5>
+                            <div class="category-prices-list">
+                                <!-- Category price fields will be added here -->
+                            </div>
                         </div>
 
                         {{-- Professions Section --}}
@@ -127,7 +126,6 @@
 
     #new-profession {
         border-right: 1px solid #e0e0e0;
-
     }
 
     #new-profession:focus {
@@ -209,6 +207,20 @@
         padding: 15px 0;
     }
 
+    /* Category price styles */
+    .category-price-item {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        border-left: 3px solid #007bff;
+    }
+
+    .category-price-item label {
+        font-weight: 600;
+        margin-bottom: 5px;
+    }
+
     @keyframes tagFadeIn {
         from {
             opacity: 0;
@@ -253,11 +265,78 @@
         const newProfessionInput = $('#new-profession');
         const addProfessionButton = $('#add-profession');
         const professionCounter = $('#profession-counter');
+        const categoriesSelect = $('#categories-select');
+        const categoryPricesContainer = $('.category-prices-list');
 
         const existingProfessions = {!! $conference->professions->pluck('name')->toJson() !!};
         let currentProfessions = [...existingProfessions];
         let removedProfessions = [];
         let editedProfessions = {};
+
+        // Store category prices
+        let categoryPrices = {};
+
+        // Initialize category prices from existing data if available
+        @if(isset($conference) && $conference->categories)
+            @foreach($conference->categories as $category)
+                categoryPrices[{{ $category->id }}] = {{ $category->pivot->price ?? $conference->price }};
+            @endforeach
+        @endif
+
+        // Function to update category price fields
+        function updateCategoryPriceFields() {
+            const selectedCategories = categoriesSelect.val() || [];
+            categoryPricesContainer.empty();
+
+            if (selectedCategories.length === 0) {
+                categoryPricesContainer.html('<div class="alert alert-info">Please select categories to set specific prices.</div>');
+                return;
+            }
+
+            selectedCategories.forEach(categoryId => {
+                const categoryName = categoriesSelect.find(`option[value="${categoryId}"]`).text();
+                const price = categoryPrices[categoryId] || $('#price').val() || 0;
+
+                // Store the price for this category
+                categoryPrices[categoryId] = price;
+
+                const priceField = `
+                    <div class="category-price-item">
+                        <label>Price for ${categoryName}</label>
+                        <div class="input-group">
+                            <div class="input-group-prepend">
+                                <span class="input-group-text">$</span>
+                            </div>
+                            <input type="number"
+                                name="category_prices[${categoryId}]"
+                                class="form-control category-price-input"
+                                data-category-id="${categoryId}"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                value="${price}"
+                                required>
+                        </div>
+                    </div>
+                `;
+
+                categoryPricesContainer.append(priceField);
+            });
+
+            // Add event listeners to the new price inputs
+            $('.category-price-input').on('change', function() {
+                const categoryId = $(this).data('category-id');
+                categoryPrices[categoryId] = $(this).val();
+            });
+        }
+
+        // Listen for changes to the categories select
+        categoriesSelect.on('change', function() {
+            updateCategoryPriceFields();
+        });
+
+        // Initialize category price fields
+        updateCategoryPriceFields();
 
         function renderProfessions() {
             professionsContainer.empty();

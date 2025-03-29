@@ -34,31 +34,29 @@
                         </div>
 
                         <div class="form-group">
-                            {!! Form::label('price', trans('Registration.conference_price'), ['class' => 'control-label required']) !!}
-                            {!! Form::number('price', old('price'), [
-                                'class' => 'form-control',
-                                'placeholder' => trans('Registration.price_placeholder'),
-                                'step' => '0.01',
-                                'required' => 'required',
-                            ]) !!}
-                        </div>
-
-                        <div class="form-group">
                             {!! Form::label('categories', trans('Registration.categories'), ['class' => 'control-label required']) !!}
                             {!! Form::select(
                                 'categories[]',
                                 $categories,
                                 old('categories'),
-                                ['class' => 'form-control select2-multi', 'multiple' => 'multiple', 'style' => 'width: 100%'],
+                                ['class' => 'form-control select2-multi', 'id' => 'categories-select', 'multiple' => 'multiple', 'style' => 'width: 100%'],
                             ) !!}
                             <small class="help-block">@lang('Registration.select_multiple_categories')</small>
+                        </div>
+
+                        <!-- Dynamic Price Fields Container -->
+                        <div id="category-prices-container" class="mb-3">
+                            <!-- Price fields will be dynamically added here -->
+                            <div class="alert alert-info">
+                                Please select categories to set prices for each category.
+                            </div>
                         </div>
 
                         {{-- Dynamic Profession Input Section --}}
                         <div class="form-group">
                             {!! Form::label('professions', trans('Registration.professions'), ['class' => 'control-label']) !!}
                             <div class="input-group mb-3">
-                                <input type="text" id="new-profession" class="form-control"
+                                <input type="text" id="new-profession" class="form-control" style="border: 1px solid lightgray"
                                     placeholder="Enter profession">
                                 <div class="input-group-append">
                                     <button class="btn btn-primary" type="button" id="add-profession">Add
@@ -110,8 +108,57 @@
         const professionsInput = $('#professions-input');
         const newProfessionInput = $('#new-profession');
         const addProfessionButton = $('#add-profession');
+        const categoriesSelect = $('#categories-select');
+        const categoryPricesContainer = $('#category-prices-container');
         let professions = [];
 
+        // Handle category selection changes
+        categoriesSelect.on('change', function() {
+            updateCategoryPriceFields();
+        });
+
+        // Function to update price fields based on selected categories
+        function updateCategoryPriceFields() {
+            const selectedCategories = categoriesSelect.val();
+            categoryPricesContainer.empty();
+
+            if (!selectedCategories || selectedCategories.length === 0) {
+                categoryPricesContainer.html(`
+                    <div class="alert alert-info">
+                        Please select categories to set prices for each category.
+                    </div>
+                `);
+                return;
+            }
+
+            // Add a price field for each selected category
+            selectedCategories.forEach(categoryId => {
+                const categoryName = categoriesSelect.find(`option[value="${categoryId}"]`).text();
+
+                const priceField = `
+                    <div class="form-group category-price-field">
+                        <label class="control-label required">Price for ${categoryName}</label>
+                        <div class="input-group">
+                            <input type="number"
+                                name="category_prices[${categoryId}]"
+                                class="form-control"
+                                style="border: 1px solid lightgray"
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                required>
+                        </div>
+                    </div>
+                `;
+
+                categoryPricesContainer.append(priceField);
+            });
+        }
+
+        // Initialize price fields on page load
+        updateCategoryPriceFields();
+
+        // Profession handling code
         addProfessionButton.on('click', function() {
             const newProfession = newProfessionInput.val().trim();
 
@@ -188,6 +235,15 @@
     .profession-tag .close {
         margin-left: 5px;
         opacity: 1;
+    }
+
+    /* Category price fields */
+    .category-price-field {
+        background-color: #f9f9f9;
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 10px;
+        border-left: 3px solid #007bff;
     }
 
     /* Fix for Select2 width issues */

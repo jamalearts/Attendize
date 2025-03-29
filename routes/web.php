@@ -162,6 +162,24 @@ Route::group(
             [EventViewController::class, 'showEventHome']
         )->name('showEventPage');
 
+        // Registration Form Routes
+        Route::get('/{event_id}/{event_slug}/registration/{registration_id}',
+            [EventViewController::class, 'showEventRegistrationForm']
+        )->name('showEventRegistrationForm');
+
+        Route::post('/{event_id}/registration/{registration_id}',
+            [EventViewController::class, 'postEventRegistration']
+        )->name('postEventRegistration');
+
+        // API Route for Professions
+        Route::get('/api/conferences/{conference_id}/professions',
+            [EventRegistrationProfessionController::class, 'getConferenceProfessions']
+        );
+
+        Route::get('/api/categories/{category_id}/conferences',
+            [EventRegistrationProfessionController::class, 'getCategoryConferences']
+        );
+
         Route::post('/{event_id}/contact_organiser',
             [EventViewController::class, 'postContactOrganiser']
         )->name('postContactOrganiser');

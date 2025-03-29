@@ -18,7 +18,6 @@ class Conference extends MyBaseModel
         return [
             'name' => 'required|string|max:255',
             'status' => 'required|in:active,inactive',
-            'price' => 'required|numeric|min:0',
             'description' => 'nullable|string',
         ];
     }
@@ -57,7 +56,9 @@ class Conference extends MyBaseModel
      */
     public function categories()
     {
-        return $this->belongsToMany(Category::class, 'category_conference');
+        return $this->belongsToMany(Category::class, 'category_conference')
+                    ->withPivot('price')
+                    ->withTimestamps();
     }
 
     /**
@@ -69,5 +70,22 @@ class Conference extends MyBaseModel
     {
         return $this->hasMany(Profession::class);
     }
-    
+
+        /**
+     * Get the price for a specific category
+     *
+     * @param int $categoryId
+     * @return float
+     */
+    public function getPriceForCategory($categoryId)
+    {
+        $category = $this->categories()->where('categories.id', $categoryId)->first();
+
+        if ($category) {
+            return $category->pivot->price;
+        }
+
+        return 0;
+    }
+
 }

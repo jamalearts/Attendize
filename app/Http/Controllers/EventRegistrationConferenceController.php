@@ -85,7 +85,7 @@ class EventRegistrationConferenceController extends Controller
      */
     public function postCreateConference(Request $request, $event_id)
     {
-        DB::beginTransaction(); // Start Transaction
+        DB::beginTransaction();
 
         try {
             $conference = Conference::createNew();
@@ -100,15 +100,24 @@ class EventRegistrationConferenceController extends Controller
             $conference->event_id = $event_id;
             $conference->name = $request->get('name');
             $conference->status = $request->get('status');
-            $conference->price = $request->get('price');
             $conference->description = prepare_markdown($request->get('description'));
 
             $conference->save();
 
-            if ($request->get('categories')) {
-                $conference->categories()->attach($request->get('categories'));
+            // Handle category attachments with prices
+            if ($request->has('category_prices') && $request->has('categories')) {
+                $categoryPrices = $request->get('category_prices');
+
+                foreach ($request->get('categories') as $categoryId) {
+                    // Check if we have a price for this category
+                    $price = isset($categoryPrices[$categoryId]) ? $categoryPrices[$categoryId] : 0;
+
+                    // Attach category with price
+                    $conference->categories()->attach($categoryId, ['price' => $price]);
+                }
             }
 
+            // Handle professions
             if ($request->get('professions')) {
                 $professions = explode(',', $request->get('professions'));
 
@@ -127,10 +136,9 @@ class EventRegistrationConferenceController extends Controller
 
                     $profession->save();
                 }
-
             }
 
-            DB::commit(); // Commit Transaction
+            DB::commit();
 
             session()->flash('message', 'Successfully Created Conference');
 
@@ -144,12 +152,12 @@ class EventRegistrationConferenceController extends Controller
             ]);
 
         } catch (Exception $e) {
-            DB::rollBack(); // Rollback Transaction on Error
+            DB::rollBack();
 
             return response()->json([
                 'status' => 'error',
                 'message' => 'Something went wrong! Please try again.',
-                'error' => $e->getMessage(), // Optional: Show error details for debugging
+                'error' => $e->getMessage(),
             ]);
         }
     }
@@ -161,6 +169,14 @@ class EventRegistrationConferenceController extends Controller
      * @param $event_id
      * @param $category_id
      * @return View
+     */
+    /**
+     * showProfessionsConference
+     *
+     * @param  mixed $request
+     * @param  mixed $event_id
+     * @param  mixed $conference_id
+     * @return void
      */
     public function showProfessionsConference(Request $request, $event_id, $conference_id)
     {
@@ -210,12 +226,13 @@ class EventRegistrationConferenceController extends Controller
             $validatedData = $request->validate([
                 'name' => 'required|string|max:255',
                 'status' => 'required|in:active,inactive',
-                'price' => 'required|numeric|min:0',
                 'description' => 'nullable|string',
                 'professions' => 'nullable|string',
                 'removed_professions' => 'nullable|string',
                 'edited_professions' => 'nullable|json',
-                'categories' => 'nullable|array'
+                'categories' => 'nullable|array',
+                'category_prices' => 'nullable|array',
+                'category_prices.*' => 'numeric|min:0',
             ]);
 
             // Start a database transaction
@@ -228,12 +245,30 @@ class EventRegistrationConferenceController extends Controller
             $conference->update([
                 'name' => $validatedData['name'],
                 'status' => $validatedData['status'],
-                'price' => $validatedData['price'],
                 'description' => $validatedData['description'] ?? null
             ]);
 
-            // Update the categories for conference
-            $conference->categories()->sync($request->get('categories'));
+            // Update the categories for conference with their specific prices
+            if ($request->has('categories') && $request->has('category_prices')) {
+                // Detach all existing categories
+                $conference->categories()->detach();
+
+                // Attach categories with their prices
+                foreach ($request->get('categories') as $categoryId) {
+                    $price = isset($request->get('category_prices')[$categoryId])
+                        ? $request->get('category_prices')[$categoryId]
+                        : $conference->price;
+
+                    $conference->categories()->attach($categoryId, ['price' => $price]);
+                }
+            } else if ($request->has('categories')) {
+                // If no category prices provided, use the base price for all categories
+                $syncData = [];
+                foreach ($request->get('categories') as $categoryId) {
+                    $syncData[$categoryId] = ['price' => $conference->price];
+                }
+                $conference->categories()->sync($syncData);
+            }
 
             // Handle removed professions
             if ($request->has('removed_professions') && !empty($request->input('removed_professions'))) {

@@ -20,7 +20,6 @@ class CreateConferencesTable extends Migration
             $table->unsignedInteger('user_id');
             $table->string('name');
             $table->enum('status', ['active', 'inactive'])->default('active');
-            $table->integer('price')->default(0);
             $table->text('description')->nullable();
             $table->timestamps();
 

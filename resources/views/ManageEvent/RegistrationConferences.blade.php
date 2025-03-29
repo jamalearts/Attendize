@@ -69,6 +69,61 @@
             margin-top: 10px;
             color: #777;
         }
+
+        /* Price badges styling */
+        .price-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+        .price-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #4CAF50, #2E7D32);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+            transition: all 0.2s ease;
+        }
+        .price-badge:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.16);
+        }
+        .price-badge-category {
+            font-weight: normal;
+            margin-right: 5px;
+            opacity: 0.9;
+        }
+        .price-badge-amount {
+            font-weight: bold;
+        }
+        .price-badge-count {
+            background-color: rgba(255,255,255,0.3);
+            border-radius: 10px;
+            padding: 2px 6px;
+            margin-left: 5px;
+            font-size: 10px;
+        }
+        .price-toggle {
+            cursor: pointer;
+            color: #3498db;
+            margin-top: 5px;
+            font-size: 12px;
+            display: inline-block;
+        }
+        .price-toggle:hover {
+            text-decoration: underline;
+        }
+        .price-summary {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        .price-range {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+        }
     </style>
 @stop
 
@@ -154,18 +209,74 @@
                                             <input type="checkbox" class="conference-checkbox" data-id="{{ $conference->id }}" data-name="{{ $conference->name }}">
                                         </td>
                                         <td>{{ $conference->name }}</td>
-                                        <td>{{ $conference->status }}</td>
-                                        <td>{{ $conference->price ?? 'N/A' }}</td>
                                         <td>
-                                            <a data-modal-id="CategoriesConference" href="javascript:void(0);"
-                                                class="loadModal"
-                                                data-href="{{ route('showEventRegistrationCategoriesConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">Show
-                                                Categories</a>
+                                            @if($conference->status == 'active')
+                                                <span class="label label-success">Active</span>
+                                            @else
+                                                <span class="label label-danger">Inactive</span>
+                                            @endif
                                         </td>
                                         <td>
-                                            <a data-modal-id="Professions" href="javascript:void(0);" class="loadModal"
-                                                data-href="{{ route('showEventRegistrationProfessionsConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">Show
-                                                Professions</a>
+                                            @if($conference->categories->count() > 0)
+                                                @php
+                                                    $minPrice = $conference->categories->min('pivot.price');
+                                                    $maxPrice = $conference->categories->max('pivot.price');
+                                                    $uniquePrices = $conference->categories->pluck('pivot.price')->unique()->count();
+                                                @endphp
+
+                                                <div class="price-summary">
+                                                    @if($minPrice == $maxPrice)
+                                                        <div class="price-badge">
+                                                            <span class="price-badge-amount">${{ number_format($minPrice, 2) }}</span>
+                                                            <span class="price-badge-count">{{ $conference->categories->count() }}</span>
+                                                        </div>
+                                                    @else
+                                                        <div class="price-badge price-range">
+                                                            <span class="price-badge-amount">${{ number_format($minPrice, 2) }} - ${{ number_format($maxPrice, 2) }}</span>
+                                                            <span class="price-badge-count">{{ $uniquePrices }}</span>
+                                                        </div>
+                                                    @endif
+                                                </div>
+
+                                                <div class="price-details-{{ $conference->id }}" style="display: none;">
+                                                    <div class="price-badges">
+                                                        @foreach($conference->categories as $category)
+                                                            <div class="price-badge">
+                                                                <span class="price-badge-category">{{ Str::limit($category->name, 15) }}:</span>
+                                                                <span class="price-badge-amount">${{ number_format($category->pivot->price, 2) }}</span>
+                                                            </div>
+                                                        @endforeach
+                                                    </div>
+                                                </div>
+
+                                                <a href="javascript:void(0);" class="price-toggle"
+                                                   data-conference="{{ $conference->id }}"
+                                                   data-show-text="Show all prices"
+                                                   data-hide-text="Hide prices">
+                                                    Show all prices
+                                                </a>
+                                            @else
+                                                <span class="text-muted">No categories</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($conference->categories->count() > 0)
+                                                <span class="label label-info">{{ $conference->categories->count() }}</span>
+                                                <a data-modal-id="CategoriesConference" href="javascript:void(0);"
+                                                    class="loadModal"
+                                                    data-href="{{ route('showEventRegistrationCategoriesConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">View</a>
+                                            @else
+                                                <span class="text-muted">None</span>
+                                            @endif
+                                        </td>
+                                        <td>
+                                            @if($conference->professions->count() > 0)
+                                                <span class="label label-info">{{ $conference->professions->count() }}</span>
+                                                <a data-modal-id="Professions" href="javascript:void(0);" class="loadModal"
+                                                    data-href="{{ route('showEventRegistrationProfessionsConference', ['event_id' => $event->id, 'conference_id' => $conference->id]) }}">View</a>
+                                            @else
+                                                <span class="text-muted">None</span>
+                                            @endif
                                         </td>
                                         <td>
                                             <a data-modal-id="EditConference" href="javascript:void(0);"
@@ -230,6 +341,22 @@
             $('#conferences').select2({
                 placeholder: "Select options",
                 allowClear: true
+            });
+
+            // Toggle price details
+            $(document).on('click', '.price-toggle', function() {
+                const conferenceId = $(this).data('conference');
+                const detailsElement = $(`.price-details-${conferenceId}`);
+                const showText = $(this).data('show-text');
+                const hideText = $(this).data('hide-text');
+
+                if (detailsElement.is(':visible')) {
+                    detailsElement.slideUp(200);
+                    $(this).text(showText);
+                } else {
+                    detailsElement.slideDown(200);
+                    $(this).text(hideText);
+                }
             });
 
             // Bulk delete functionality
