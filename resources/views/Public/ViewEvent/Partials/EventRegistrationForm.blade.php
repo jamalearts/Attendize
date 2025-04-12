@@ -336,7 +336,7 @@
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="conference_id" class="form-label required-label">Select Conference</label>
-                                    <select class="form-select" id="conference_id" name="conference_id" required>
+                                    <select class="form-select" id="conference_id" name="conference_id" width="100%" required>
                                         <option value="">-- Loading Conferences... --</option>
                                     </select>
                                     <div class="invalid-feedback" id="conference-error">
@@ -433,7 +433,7 @@
                 @if ($registration->category)
                     <div class="price-container" id="price-container">
                         <div class="price-label">Registration Fee</div>
-                        <div class="price-value" id="price-value">$0.00</div>
+                        <div class="price-value align-self-end text-end"  id="price-value">$0.00</div>
                     </div>
                 @endif
 
@@ -497,57 +497,63 @@
 
         // Load conferences via AJAX
         function loadConferences() {
-            const conferenceSelect = document.getElementById('conference_id');
-            const categoryId = {{ $registration->category_id ?? 'null' }};
+    const conferenceSelect = document.getElementById('conference_id');
+    const categoryId = {{ $registration->category_id ?? 'null' }};
 
-            if (!conferenceSelect || !categoryId) return;
+    if (!conferenceSelect || !categoryId) return;
 
-            // Show loading state
-            conferenceSelect.innerHTML = '<option value="">-- Loading Conferences... --</option>';
-            conferenceSelect.disabled = true;
+    // Show loading state
+    conferenceSelect.innerHTML = '<option value="">-- Loading Conferences... --</option>';
+    conferenceSelect.disabled = true;
 
-            // Fetch conferences for this category
-            fetch(`/e/api/categories/${categoryId}/conferences`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    // Clear loading option
-                    conferenceSelect.innerHTML = '<option value="">-- Select Conference --</option>';
+    // Fetch conferences for this category
+    fetch(`/e/api/categories/${categoryId}/conferences`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Clear loading option
+            conferenceSelect.innerHTML = '<option value="">-- Select Conference --</option>';
 
-                    if (data.conferences && data.conferences.length > 0) {
-                        data.conferences.forEach(conference => {
-                            const option = new Option(conference.name, conference.id);
-                            option.dataset.price = conference.price;
-                            conferenceSelect.add(option);
-                        });
-
-                        // Enable the select
-                        conferenceSelect.disabled = false;
-
-                        // Add change event listener
-                        conferenceSelect.addEventListener('change', function() {
-                            loadProfessions(this.value);
-                            updatePrice();
-                        });
-                    } else {
-                        conferenceSelect.innerHTML = '<option value="">No conferences available</option>';
-                        document.getElementById('conference-error').textContent =
-                            'No conferences are currently available for this registration.';
-                        conferenceSelect.classList.add('is-invalid');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error loading conferences:', error);
-                    conferenceSelect.innerHTML = '<option value="">Error loading conferences</option>';
-                    document.getElementById('conference-error').textContent =
-                        'Failed to load conferences. Please try again later.';
-                    conferenceSelect.classList.add('is-invalid');
+            if (data.conferences && data.conferences.length > 0) {
+                data.conferences.forEach(conference => {
+                    // Format the price to 2 decimal places
+                    const formattedPrice = parseFloat(conference.price).toFixed(2);
+                    
+                    // Include the price in the option text
+                    const optionText = `${conference.name} - $${formattedPrice}`;
+                    
+                    const option = new Option(optionText, conference.id);
+                    option.dataset.price = conference.price;
+                    conferenceSelect.add(option);
                 });
-        }
+
+                // Enable the select
+                conferenceSelect.disabled = false;
+
+                // Add change event listener
+                conferenceSelect.addEventListener('change', function() {
+                    loadProfessions(this.value);
+                    updatePrice();
+                });
+            } else {
+                conferenceSelect.innerHTML = '<option value="">No conferences available</option>';
+                document.getElementById('conference-error').textContent =
+                    'No conferences are currently available for this registration.';
+                conferenceSelect.classList.add('is-invalid');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading conferences:', error);
+            conferenceSelect.innerHTML = '<option value="">Error loading conferences</option>';
+            document.getElementById('conference-error').textContent =
+                'Failed to load conferences. Please try again later.';
+            conferenceSelect.classList.add('is-invalid');
+        });
+}
 
         // Load professions via AJAX
         function loadProfessions(conferenceId) {

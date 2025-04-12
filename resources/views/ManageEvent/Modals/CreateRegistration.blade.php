@@ -206,8 +206,18 @@
     <div class="dynamic-field panel panel-default" data-field-index="{INDEX}">
         <div class="panel-heading">
             <h4 class="panel-title">
+                <span class="drag-handle" title="Drag to reorder"><i class="ico-arrows-v"></i></span>
                 <i class="ico-list"></i> <span class="field-title">New Field</span>
+                <span class="position-badge">Position: <span class="position-number">1</span></span>
                 <span class="pull-right">
+                    <div class="btn-group position-controls">
+                        <button type="button" class="btn btn-xs btn-default move-up-btn" title="Move Up">
+                            <i class="ico-arrow-up"></i>
+                        </button>
+                        <button type="button" class="btn btn-xs btn-default move-down-btn" title="Move Down">
+                            <i class="ico-arrow-down"></i>
+                        </button>
+                    </div>
                     <a href="javascript:void(0);" class="btn btn-xs btn-danger remove-field-btn">
                         <i class="ico-trash"></i>
                     </a>
@@ -245,6 +255,9 @@
                 </div>
             </div>
 
+            <!-- Hidden field to store position -->
+            <input type="hidden" name="dynamic_fields[{INDEX}][position]" class="field-position" value="0">
+
             <div class="row">
                 <div class="col-md-12">
                     <div class="form-group field-options" style="display: none;">
@@ -273,70 +286,139 @@
 
 <script>
     // Wait for the document to be fully loaded
-    $(document).ready(function() {
-        // Initialize field counter
-        let fieldCounter = 0;
+$(document).ready(function() {
+    // Initialize field counter
+    let fieldCounter = 0;
 
-        // Add field button click handler
-        $('#add-field-btn').on('click', function() {
-            addNewField();
+    // Add field button click handler
+    $('#add-field-btn').on('click', function() {
+        addNewField();
+    });
+
+    // Function to add a new field
+    function addNewField() {
+        // Get the template
+        const template = $('#field-template').html();
+
+        // Replace the index placeholder
+        const fieldHtml = template.replace(/{INDEX}/g, fieldCounter);
+
+        // Append the field to the list
+        $('#dynamic-fields-list').append(fieldHtml);
+
+        // Initialize the field type change handler for the new field
+        const $newField = $('#dynamic-fields-list .dynamic-field').last();
+
+        // Set up field type change handler
+        $newField.find('.field-type').on('change', function() {
+            toggleOptionsField($(this));
         });
 
-        // Function to add a new field
-        function addNewField() {
-            // Get the template
-            const template = $('#field-template').html();
+        // Set up field label change handler
+        $newField.find('.field-label').on('input', function() {
+            $newField.find('.field-title').text($(this).val() || 'New Field');
+        });
 
-            // Replace the index placeholder
-            const fieldHtml = template.replace(/{INDEX}/g, fieldCounter);
+        // Set up remove button handler
+        $newField.find('.remove-field-btn').on('click', function() {
+            $newField.remove();
+            updatePositionNumbers();
+        });
 
-            // Append the field to the list
-            $('#dynamic-fields-list').append(fieldHtml);
+        // Increment the counter
+        fieldCounter++;
 
-            // Initialize the field type change handler for the new field
-            const $newField = $('#dynamic-fields-list .dynamic-field').last();
+        // Show the new field (ensure it's visible)
+        $newField.show();
 
-            // Set up field type change handler
-            $newField.find('.field-type').on('change', function() {
-                toggleOptionsField($(this));
-            });
+        // Trigger the change event to properly show/hide options field
+        $newField.find('.field-type').trigger('change');
 
-            // Set up field label change handler
-            $newField.find('.field-label').on('input', function() {
-                $newField.find('.field-title').text($(this).val() || 'New Field');
-            });
+        // Update position numbers for all fields
+        updatePositionNumbers();
+    }
 
-            // Set up remove button handler
-            $newField.find('.remove-field-btn').on('click', function() {
-                $newField.remove();
-            });
+    // Function to toggle options field based on field type
+    function toggleOptionsField($selectElement) {
+        const $fieldContainer = $selectElement.closest('.dynamic-field');
+        const $optionsField = $fieldContainer.find('.field-options');
+        const optionsTypes = ['select', 'checkbox', 'radio'];
 
-            // Increment the counter
-            fieldCounter++;
-
-            // Show the new field (ensure it's visible)
-            $newField.show();
-
-            // Trigger the change event to properly show/hide options field
-            $newField.find('.field-type').trigger('change');
-
-            // Log to console for debugging
-            console.log('Added new field with index: ' + (fieldCounter - 1));
+        if (optionsTypes.includes($selectElement.val())) {
+            $optionsField.show();
+        } else {
+            $optionsField.hide();
         }
+    }
 
-        // Function to toggle options field based on field type
-        function toggleOptionsField($selectElement) {
-            const $fieldContainer = $selectElement.closest('.dynamic-field');
-            const $optionsField = $fieldContainer.find('.field-options');
-            const optionsTypes = ['select', 'checkbox', 'radio'];
+    // Function to update position numbers for all fields
+    function updatePositionNumbers() {
+        const $fields = $('#dynamic-fields-list .dynamic-field');
+        $fields.each(function(index) {
+            $(this).find('.field-position').val(index + 1);
+            $(this).find('.position-number').text(index + 1);
+        });
+    }
 
-            if (optionsTypes.includes($selectElement.val())) {
-                $optionsField.show();
-            } else {
-                $optionsField.hide();
-            }
+    // Make the fields sortable
+    $('#dynamic-fields-list').sortable({
+        handle: '.drag-handle',
+        update: function(event, ui) {
+            updatePositionNumbers();
         }
     });
+});
+// Additional code to add to your script for position control buttons
+$(document).ready(function() {
+    // Delegate event handler for the move up button
+    $(document).on('click', '.move-up-btn', function() {
+        const $currentField = $(this).closest('.dynamic-field');
+        const $prevField = $currentField.prev('.dynamic-field');
+        
+        if ($prevField.length) {
+            $currentField.insertBefore($prevField);
+            updatePositionNumbers();
+        }
+    });
+    
+    // Delegate event handler for the move down button
+    $(document).on('click', '.move-down-btn', function() {
+        const $currentField = $(this).closest('.dynamic-field');
+        const $nextField = $currentField.next('.dynamic-field');
+        
+        if ($nextField.length) {
+            $currentField.insertAfter($nextField);
+            updatePositionNumbers();
+        }
+    });
+    
+    // Add some CSS for better UX
+    $('<style>')
+        .text(`
+            .drag-handle {
+                cursor: move;
+                margin-right: 5px;
+                color: #999;
+            }
+            .position-badge {
+                margin-left: 10px;
+                font-size: 12px;
+                color: #777;
+            }
+            .ui-sortable-helper {
+                background: #f8f8f8;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            }
+            .ui-sortable-placeholder {
+                visibility: visible !important;
+                background: #f0f9ff;
+                border: 1px dashed #bce8f1;
+                height: 100px;
+                margin-bottom: 10px;
+            }
+        `)
+        .appendTo('head');
+});
 </script>
 
 <style>

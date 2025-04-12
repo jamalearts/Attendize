@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+
 class EventRegistrationController extends Controller
 {
     /**
@@ -35,7 +36,8 @@ class EventRegistrationController extends Controller
             abort(404);
         }
 
-        $registrationQuery = $event->registrations()
+        $registrationQuery = $event
+            ->registrations()
             ->withCount('users')
             ->withCount([
                 'users as new_users_count' => function ($query) {
@@ -56,7 +58,8 @@ class EventRegistrationController extends Controller
         // Apply search if provided
         if ($searchQuery) {
             $registrationQuery->where(function ($query) use ($searchQuery) {
-                $query->where('name', 'like', "%{$searchQuery}%")
+                $query
+                    ->where('name', 'like', "%{$searchQuery}%")
                     ->orWhere('approval_status', 'like', "%{$searchQuery}%")
                     ->orWhere('status', 'like', "%{$searchQuery}%")
                     ->orWhere('start_date', 'like', "%{$searchQuery}%")
@@ -85,7 +88,6 @@ class EventRegistrationController extends Controller
         return view('ManageEvent.Registration', $data);
     }
 
-
     public function showCreateRegistration(Request $request, $event_id)
     {
         $event = Event::scope()->find($event_id);
@@ -108,6 +110,7 @@ class EventRegistrationController extends Controller
      * @param $event_id
      * @return mixed
      */
+
     /**
      * Store a newly created registration in storage.
      *
@@ -148,14 +151,11 @@ class EventRegistrationController extends Controller
 
             // Create default form fields if no dynamic fields are provided
             if (!$request->has('dynamic_fields')) {
-                $this->createDefaultFormFields($registration);
+                // $this->createDefaultFormFields($registration);
             } else {
-                // Create default fields first
-                $this->createDefaultFormFields($registration);
-
                 // Then add custom dynamic fields
                 $dynamicFields = $request->get('dynamic_fields');
-                $sortOrder = 4; // Start after default fields
+                $sortOrder = 4;  // Start after default fields
 
                 foreach ($dynamicFields as $field) {
                     if (empty($field['label'])) {
@@ -180,18 +180,18 @@ class EventRegistrationController extends Controller
                 }
             }
 
-            DB::commit(); // Commit Transaction
+            DB::commit();  // Commit Transaction
 
             session()->flash('message', 'Successfully Created Registration');
 
             return response()->json([
                 'status' => 'success',
                 'id' => $registration->id,
-                'message' => trans("Controllers.refreshing"),
+                'message' => trans('Controllers.refreshing'),
                 'redirectUrl' => route('showEventRegistration', ['event_id' => $event_id]),
             ]);
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback Transaction on Error
+            DB::rollBack();  // Rollback Transaction on Error
 
             return response()->json([
                 'status' => 'error',
@@ -207,51 +207,51 @@ class EventRegistrationController extends Controller
      * @param \App\Models\Registration $registration
      * @return void
      */
-    protected function createDefaultFormFields(Registration $registration)
-    {
-        // Create default form fields
-        $defaultFields = [
-            [
-                'label' => 'First Name',
-                'name' => 'first_name',
-                'type' => 'text',
-                'is_required' => true,
-                'sort_order' => 0,
-            ],
-            [
-                'label' => 'Last Name',
-                'name' => 'last_name',
-                'type' => 'text',
-                'is_required' => true,
-                'sort_order' => 1,
-            ],
-            [
-                'label' => 'Email',
-                'name' => 'email',
-                'type' => 'email',
-                'is_required' => true,
-                'sort_order' => 2,
-            ],
-            [
-                'label' => 'Phone',
-                'name' => 'phone',
-                'type' => 'tel',
-                'is_required' => false,
-                'sort_order' => 3,
-            ],
-        ];
+    // protected function createDefaultFormFields(Registration $registration)
+    // {
+    //     // Create default form fields
+    //     $defaultFields = [
+    //         [
+    //             'label' => 'First Name',
+    //             'name' => 'first_name',
+    //             'type' => 'text',
+    //             'is_required' => true,
+    //             'sort_order' => 0,
+    //         ],
+    //         [
+    //             'label' => 'Last Name',
+    //             'name' => 'last_name',
+    //             'type' => 'text',
+    //             'is_required' => true,
+    //             'sort_order' => 1,
+    //         ],
+    //         [
+    //             'label' => 'Email',
+    //             'name' => 'email',
+    //             'type' => 'email',
+    //             'is_required' => true,
+    //             'sort_order' => 2,
+    //         ],
+    //         [
+    //             'label' => 'Phone',
+    //             'name' => 'phone',
+    //             'type' => 'tel',
+    //             'is_required' => false,
+    //             'sort_order' => 3,
+    //         ],
+    //     ];
 
-        foreach ($defaultFields as $field) {
-            DynamicFormField::create([
-                'registration_id' => $registration->id,
-                'label' => $field['label'],
-                'name' => $field['name'],
-                'type' => $field['type'],
-                'is_required' => $field['is_required'],
-                'sort_order' => $field['sort_order'],
-            ]);
-        }
-    }
+    //     foreach ($defaultFields as $field) {
+    //         DynamicFormField::create([
+    //             'registration_id' => $registration->id,
+    //             'label' => $field['label'],
+    //             'name' => $field['name'],
+    //             'type' => $field['type'],
+    //             'is_required' => $field['is_required'],
+    //             'sort_order' => $field['sort_order'],
+    //         ]);
+    //     }
+    // }
 
     /**
      * Show the registration details modal.
@@ -381,7 +381,7 @@ class EventRegistrationController extends Controller
                 DynamicFormField::whereIn('id', $request->input('deleted_fields'))->delete();
             }
 
-            DB::commit(); // Commit Transaction
+            DB::commit();  // Commit Transaction
 
             session()->flash('message', 'Registration updated successfully');
 
@@ -391,7 +391,7 @@ class EventRegistrationController extends Controller
                 'redirectUrl' => route('showEventRegistration', ['event_id' => $event_id]),
             ]);
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback Transaction on Error
+            DB::rollBack();  // Rollback Transaction on Error
 
             return response()->json([
                 'status' => 'error',
@@ -438,7 +438,7 @@ class EventRegistrationController extends Controller
             $registration->registrationUsers()->delete();
             $registration->delete();
 
-            DB::commit(); // Commit Transaction
+            DB::commit();  // Commit Transaction
 
             session()->flash('message', 'Registration deleted successfully');
 
@@ -448,7 +448,7 @@ class EventRegistrationController extends Controller
                 'redirectUrl' => route('showEventRegistration', ['event_id' => $event_id]),
             ]);
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback Transaction on Error
+            DB::rollBack();  // Rollback Transaction on Error
 
             return response()->json([
                 'status' => 'error',
@@ -490,14 +490,14 @@ class EventRegistrationController extends Controller
                 $registration->delete();
             }
 
-            DB::commit(); // Commit Transaction
+            DB::commit();  // Commit Transaction
 
             return response()->json([
                 'status' => 'success',
                 'message' => count($registrationIds) . ' registrations deleted successfully',
             ]);
         } catch (\Exception $e) {
-            DB::rollBack(); // Rollback Transaction on Error
+            DB::rollBack();  // Rollback Transaction on Error
 
             return response()->json([
                 'status' => 'error',
@@ -506,5 +506,4 @@ class EventRegistrationController extends Controller
             ]);
         }
     }
-
 }

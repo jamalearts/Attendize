@@ -6,13 +6,12 @@ use App\Models\Category;
 use App\Models\Conference;
 use App\Models\Event;
 use App\Models\Profession;
-use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Exception;
 
 class EventRegistrationProfessionController extends MyBaseController
 {
-
     /**
      * Show the 'Edit Profession' modal
      *
@@ -46,10 +45,15 @@ class EventRegistrationProfessionController extends MyBaseController
             $category = Category::findOrFail($category_id);
 
             // Get only active conferences
-            $conferences = $category->conferences()
+            $conferences = $category
+                ->conferences()
                 ->where('status', 'active')
                 ->orderBy('created_at')
-                ->get();
+                ->get()
+                ->map(function ($conference) use ($category_id) {
+                    $conference->price = $conference->getPriceForCategory($category_id);
+                    return $conference; 
+                });
 
             return response()->json([
                 'conferences' => $conferences,
@@ -74,7 +78,8 @@ class EventRegistrationProfessionController extends MyBaseController
             $conference = Conference::findOrFail($conference_id);
 
             // Get only active professions
-            $professions = $conference->professions()
+            $professions = $conference
+                ->professions()
                 // ->where('status', 'active')
                 ->orderBy('name')
                 ->get();
@@ -89,5 +94,4 @@ class EventRegistrationProfessionController extends MyBaseController
             ], 400);
         }
     }
-
 }
