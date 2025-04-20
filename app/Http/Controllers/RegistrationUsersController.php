@@ -134,7 +134,7 @@ class RegistrationUsersController extends Controller
      * @param int $user_id
      * @return \Illuminate\Http\Response
      */
-    public function updateUserStatus(Request $request, $event_id, $registration_id, $user_id)
+    public function updateUserStatus(Request $request, $event_id, $user_id)
     {
         $user = RegistrationUser::findOrFail($user_id);
 
@@ -169,7 +169,7 @@ class RegistrationUsersController extends Controller
      * @param int $user_id
      * @return \Illuminate\Http\Response
      */
-    public function deleteUser($event_id, $registration_id, $user_id)
+    public function deleteUser($event_id, $user_id)
     {
         $user = RegistrationUser::findOrFail($user_id);
         $user->delete();
@@ -188,7 +188,7 @@ class RegistrationUsersController extends Controller
      * @param int $registration_id
      * @return \Illuminate\Http\Response
      */
-    public function bulkUpdateUsers(Request $request, $event_id, $registration_id)
+    public function bulkUpdateUsers(Request $request, $event_id)
     {
         $this->validate($request, [
             'user_ids' => 'required|array',
@@ -234,8 +234,9 @@ class RegistrationUsersController extends Controller
      */
     public function getUserDetails($event_id, $user_id)
     {
-        $user = RegistrationUser::with(['registration', 'formResponses.field'])->findOrFail($user_id);
+        $user = RegistrationUser::with(['registration', 'formFieldValues.field'])->findOrFail($user_id);
+        $event = Event::findOrFail($event_id);
 
-        return view('ManageEvent.Modals.UserDetails', compact('user'));
+        return view('ManageEvent.Modals.UserDetails', compact('user' , 'event'));
     }
 }

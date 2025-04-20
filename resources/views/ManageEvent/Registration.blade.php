@@ -170,32 +170,9 @@
             margin-left: 20px;
         }
 
-        .badge-notification {
-            background-color: #ff4136;
-            color: white;
-            border-radius: 50%;
-            padding: 3px 6px;
-            font-size: 10px;
-            position: relative;
-            top: -8px;
-            left: -5px;
-            min-width: 18px;
-            text-align: center;
-        }
-
-        .users-count-cell {
-            position: relative;
-        }
-
         .users-count-btn {
             position: relative;
             padding-right: 25px;
-        }
-
-        .users-count-btn .badge-notification {
-            position: absolute;
-            top: -5px;
-            right: -5px;
         }
 
         .notification-dot {
@@ -213,19 +190,6 @@
             margin-left: 20px;
         }
 
-        .badge-notification {
-            background-color: #ff4136;
-            color: white;
-            border-radius: 50%;
-            padding: 3px 6px;
-            font-size: 10px;
-            position: relative;
-            top: -8px;
-            left: -5px;
-            min-width: 18px;
-            text-align: center;
-        }
-
         .users-count-cell {
             position: relative;
         }
@@ -235,11 +199,46 @@
             padding-right: 25px;
         }
 
-        .users-count-btn .badge-notification {
-            position: absolute;
-            top: -5px;
-            right: -5px;
-        }
+
+        .users-count-cell {
+    position: relative;
+}
+
+.users-count-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    background-color: #2563eb;
+    color: #fff;
+    font-size: 14px;
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+    text-decoration: none;
+}
+
+.users-count-btn:hover {
+    background-color: #1e40af;
+}
+
+.users-count-btn i {
+    margin-right: 6px;
+}
+
+.badge-notification {
+    position: absolute;
+    top: -14px;
+    right: -14px;
+    background-color: #ef4444;
+    color: #fff;
+    border-radius: 9999px;
+    padding: 2px 6px;
+    font-size: 11px;
+    font-weight: bold;
+    min-width: 18px;
+    text-align: center;
+    box-shadow: 0 0 0 2px white;
+}
 
         @keyframes pulse {
             0% {
@@ -285,14 +284,12 @@
             </div>
         </div>
     </div>
-    <div class="col-md-3">
-        <i class="ico-file-text"></i>
-        @lang('Registration.registrations')
+    <div class="col-md-3" style="display: flex; justify-content: end;">
         <span class="page-title-buttons">
-            <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}" class="btn btn-sm btn-success">
+            <a href="{{ route('showEventRegistrationUsers', ['event_id' => $event->id]) }}" class="btn btn-sm btn-success" style="position: relative">
                 <i class="ico-users"></i> All Users
                 @if($newRegistrationsCount > 0)
-                    <span class="badge badge-notification">{{ $newRegistrationsCount }}</span>
+                    <span class="badge-notification">{{ $newRegistrationsCount }}</span>
                 @endif
             </a>
         </span>
@@ -413,8 +410,8 @@
                                                 {{ ucfirst($reg->status) }}
                                             </span>
                                         </td>
-                                        <td>{{ $reg->start_date }}</td>
-                                        <td>{{ $reg->end_date }}</td>
+                                        <td>{{ $reg->getFormattedDate('start_date') }}</td>
+                                        <td>{{ $reg->getFormattedDate('end_date') }}</td>
                                         <td>
                                             <span class="status-badge approval-{{ $reg->approval_status }}">
                                                 {{ ucfirst($reg->approval_status) }}
@@ -422,9 +419,9 @@
                                         </td>
                                         <td class="users-count-cell">
                                             <a href="{{ route('showRegistrationUsers', ['event_id' => $event->id, 'registration_id' => $reg->id]) }}" class="btn btn-xs btn-info users-count-btn">
-                                                <i class="ico-users"></i> {{ $reg->users_count }}
+                                                <i class="ico-users"></i> {{ $reg->registrationUsers()->count() }}
                                                 @if($reg->new_users_count > 0)
-                                                    <span class="badge badge-notification">{{ $reg->new_users_count }}</span>
+                                                    <span class="badge-notification">{{ $reg->new_users_count }}</span>
                                                 @endif
                                             </a>
                                         </td>

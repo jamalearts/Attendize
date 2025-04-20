@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Model;
 
-class RegistrationUser extends Pivot
+class RegistrationUser extends Model
 {
 
     protected $table = 'registration_users';
@@ -74,6 +74,6 @@ class RegistrationUser extends Pivot
      */
     public function formFieldValues()
     {
-        return $this->hasMany(DynamicFormFieldValue::class);
+        return $this->hasMany(DynamicFormFieldValue::class , 'registration_user_id');
     }
 }

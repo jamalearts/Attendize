@@ -3,6 +3,8 @@
 
 @section('head')
     @include('Public.ViewEvent.Partials.GoogleTagManager')
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.css" rel="stylesheet" type="text/css">
+
     <style>
         .registration-form-container {
             max-width: 800px;
@@ -86,13 +88,6 @@
             border-color: #4a1fa8;
             transform: translateY(-2px);
             box-shadow: 0 5px 15px rgba(88, 41, 188, 0.3);
-        }
-
-        .conference-price {
-            font-size: 1.2rem;
-            font-weight: 600;
-            color: #5829bc;
-            margin-top: 10px;
         }
 
         .registration-header {
@@ -209,6 +204,10 @@
                 margin-top: 20px;
                 width: 100%;
             }
+
+            .fee-card {
+                margin-top: 20px;
+            }
         }
 
         /* Price update animation */
@@ -243,6 +242,97 @@
 
         .is-invalid+.invalid-feedback {
             display: block;
+        }
+
+        /* New Fee Card Styles */
+        .fee-card {
+            background: linear-gradient(135deg, #6e45e2 0%, #5829bc 100%);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            color: white;
+            box-shadow: 0 10px 20px rgba(88, 41, 188, 0.2);
+            transition: all 0.3s ease;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .fee-card-hidden {
+            height: 0;
+            padding: 0;
+            margin: 0;
+            opacity: 0;
+        }
+
+        .fee-card-visible {
+            height: auto;
+            opacity: 1;
+        }
+
+        .fee-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -50%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transform: rotate(45deg);
+            pointer-events: none;
+        }
+
+        .fee-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .fee-card-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin: 0;
+        }
+
+        .fee-card-conference {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0 0 15px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .fee-card-amount {
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin: 0;
+            line-height: 1;
+        }
+
+        .fee-card-details {
+            font-size: 0.9rem;
+            opacity: 0.8;
+            margin-top: 5px;
+        }
+
+        .fee-card-icon {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            font-size: 4rem;
+            opacity: 0.2;
+        }
+
+        .fee-card-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 500;
         }
     </style>
 @endsection
@@ -284,6 +374,20 @@
                             <span class="timer-label">Secs</span>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- New Fee Card - Initially Hidden -->
+            <div id="fee-card" class="fee-card fee-card-hidden">
+                <div class="fee-card-badge">Selected Conference</div>
+                <div class="fee-card-header">
+                    <h4 class="fee-card-title">Registration Fee</h4>
+                </div>
+                <h3 id="fee-card-conference" class="fee-card-conference">Conference Name</h3>
+                <h2 id="fee-card-amount" class="fee-card-amount">$0.00</h2>
+                <p class="fee-card-details">This fee includes all conference materials and access to all sessions.</p>
+                <div class="fee-card-icon">
+                    <i class="fa fa-ticket"></i>
                 </div>
             </div>
 
@@ -336,7 +440,7 @@
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="conference_id" class="form-label required-label">Select Conference</label>
-                                    <select class="form-select" id="conference_id" name="conference_id" width="100%" required>
+                                    <select class="form-select" id="conference_id" name="conference_id" style="width: 100%" required>
                                         <option value="">-- Loading Conferences... --</option>
                                     </select>
                                     <div class="invalid-feedback" id="conference-error">
@@ -347,7 +451,7 @@
                             <div class="form-col">
                                 <div class="form-group">
                                     <label for="profession_id" class="form-label required-label">Profession</label>
-                                    <select class="form-select" id="profession_id" name="profession_id" required disabled>
+                                    <select class="form-select" id="profession_id" name="profession_id" style="width: 100%" required disabled>
                                         <option value="">-- Select Profession --</option>
                                     </select>
                                     <div class="invalid-feedback" id="profession-error">
@@ -355,10 +459,6 @@
                                     </div>
                                 </div>
                             </div>
-                        </div>
-
-                        <div class="conference-price" id="conference-price">
-                            Price: $0.00
                         </div>
                     @endif
 
@@ -430,13 +530,6 @@
                     @endif
                 </div>
 
-                @if ($registration->category)
-                    <div class="price-container" id="price-container">
-                        <div class="price-label">Registration Fee</div>
-                        <div class="price-value align-self-end text-end"  id="price-value">$0.00</div>
-                    </div>
-                @endif
-
                 <div class="text-center">
                     <button type="submit" class="btn btn-submit">Complete Registration</button>
                 </div>
@@ -445,6 +538,38 @@
     </section>
 
     @include('Public.ViewEvent.Partials.EventFooterSection')
+
+        <!-- Add toast notifications inline -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
+
+        <script>
+            $(document).ready(function() {
+                // Configure Toastr
+                toastr.options = {
+                    "closeButton": true,
+                    "debug": false,
+                    "newestOnTop": true,
+                    "progressBar": true,
+                    "positionClass": "toast-top-right",
+                    "preventDuplicates": false,
+                    "onclick": null,
+                    "showDuration": "300",
+                    "hideDuration": "1000",
+                    "timeOut": "5000",
+                    "extendedTimeOut": "1000",
+                    "showEasing": "swing",
+                    "hideEasing": "linear",
+                    "showMethod": "fadeIn",
+                    "hideMethod": "fadeOut"
+                };
+
+                @if(session('error'))
+                    toastr.error("{{ session('error') }}", "Error");
+                @endif
+
+            });
+        </script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -497,63 +622,64 @@
 
         // Load conferences via AJAX
         function loadConferences() {
-    const conferenceSelect = document.getElementById('conference_id');
-    const categoryId = {{ $registration->category_id ?? 'null' }};
+            const conferenceSelect = document.getElementById('conference_id');
+            const categoryId = {{ $registration->category_id ?? 'null' }};
 
-    if (!conferenceSelect || !categoryId) return;
+            if (!conferenceSelect || !categoryId) return;
 
-    // Show loading state
-    conferenceSelect.innerHTML = '<option value="">-- Loading Conferences... --</option>';
-    conferenceSelect.disabled = true;
+            // Show loading state
+            conferenceSelect.innerHTML = '<option value="">-- Loading Conferences... --</option>';
+            conferenceSelect.disabled = true;
 
-    // Fetch conferences for this category
-    fetch(`/e/api/categories/${categoryId}/conferences`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
-            }
-            return response.json();
-        })
-        .then(data => {
-            // Clear loading option
-            conferenceSelect.innerHTML = '<option value="">-- Select Conference --</option>';
+            // Fetch conferences for this category
+            fetch(`/e/api/categories/${categoryId}/conferences`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Clear loading option
+                    conferenceSelect.innerHTML = '<option value="">-- Select Conference --</option>';
 
-            if (data.conferences && data.conferences.length > 0) {
-                data.conferences.forEach(conference => {
-                    // Format the price to 2 decimal places
-                    const formattedPrice = parseFloat(conference.price).toFixed(2);
-                    
-                    // Include the price in the option text
-                    const optionText = `${conference.name} - $${formattedPrice}`;
-                    
-                    const option = new Option(optionText, conference.id);
-                    option.dataset.price = conference.price;
-                    conferenceSelect.add(option);
+                    if (data.conferences && data.conferences.length > 0) {
+                        data.conferences.forEach(conference => {
+                            // Format the price to 2 decimal places
+                            const formattedPrice = parseFloat(conference.price).toFixed(2);
+
+                            // Include the price in the option text
+                            const optionText = `${conference.name} - $${formattedPrice}`;
+
+                            const option = new Option(optionText, conference.id);
+                            option.dataset.price = conference.price;
+                            option.dataset.name = conference.name;
+                            conferenceSelect.add(option);
+                        });
+
+                        // Enable the select
+                        conferenceSelect.disabled = false;
+
+                        // Add change event listener
+                        conferenceSelect.addEventListener('change', function() {
+                            loadProfessions(this.value);
+                            updateFeeCard();
+                        });
+                    } else {
+                        conferenceSelect.innerHTML = '<option value="">No conferences available</option>';
+                        document.getElementById('conference-error').textContent =
+                            'No conferences are currently available for this registration.';
+                        conferenceSelect.classList.add('is-invalid');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading conferences:', error);
+                    conferenceSelect.innerHTML = '<option value="">Error loading conferences</option>';
+                    document.getElementById('conference-error').textContent =
+                        'Failed to load conferences. Please try again later.';
+                    conferenceSelect.classList.add('is-invalid');
                 });
-
-                // Enable the select
-                conferenceSelect.disabled = false;
-
-                // Add change event listener
-                conferenceSelect.addEventListener('change', function() {
-                    loadProfessions(this.value);
-                    updatePrice();
-                });
-            } else {
-                conferenceSelect.innerHTML = '<option value="">No conferences available</option>';
-                document.getElementById('conference-error').textContent =
-                    'No conferences are currently available for this registration.';
-                conferenceSelect.classList.add('is-invalid');
-            }
-        })
-        .catch(error => {
-            console.error('Error loading conferences:', error);
-            conferenceSelect.innerHTML = '<option value="">Error loading conferences</option>';
-            document.getElementById('conference-error').textContent =
-                'Failed to load conferences. Please try again later.';
-            conferenceSelect.classList.add('is-invalid');
-        });
-}
+        }
 
         // Load professions via AJAX
         function loadProfessions(conferenceId) {
@@ -606,25 +732,44 @@
                 });
         }
 
-        function updatePrice() {
+        // Update the fee card with selected conference details
+        function updateFeeCard() {
             const conferenceSelect = document.getElementById('conference_id');
-            const priceValue = document.getElementById('price-value');
+            const feeCard = document.getElementById('fee-card');
+            const feeCardConference = document.getElementById('fee-card-conference');
+            const feeCardAmount = document.getElementById('fee-card-amount');
 
-            if (!conferenceSelect || !priceValue) return;
+            if (!conferenceSelect || !feeCard || !feeCardConference || !feeCardAmount) return;
 
             const selectedOption = conferenceSelect.options[conferenceSelect.selectedIndex];
 
             if (selectedOption && selectedOption.value) {
                 const price = selectedOption.dataset.price || 0;
-                priceValue.textContent = `$${parseFloat(price).toFixed(2)}`;
+                const conferenceName = selectedOption.dataset.name || 'Selected Conference';
+
+                // Update the fee card content
+                feeCardConference.textContent = conferenceName;
+                feeCardAmount.textContent = `$${parseFloat(price).toFixed(2)}`;
+
+                // Show the fee card with animation
+                feeCard.classList.remove('fee-card-hidden');
+                feeCard.classList.add('fee-card-visible');
 
                 // Add animation effect
-                priceValue.classList.add('price-updated');
+                feeCardAmount.classList.add('price-updated');
                 setTimeout(() => {
-                    priceValue.classList.remove('price-updated');
+                    feeCardAmount.classList.remove('price-updated');
                 }, 500);
+
+                // Scroll to the fee card if it's not in view
+                const rect = feeCard.getBoundingClientRect();
+                if (rect.top < 0 || rect.bottom > window.innerHeight) {
+                    feeCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             } else {
-                priceValue.textContent = '$0.00';
+                // Hide the fee card if no conference is selected
+                feeCard.classList.remove('fee-card-visible');
+                feeCard.classList.add('fee-card-hidden');
             }
         }
     </script>

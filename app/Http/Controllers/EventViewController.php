@@ -10,6 +10,7 @@ use App\Models\EventAccessCodes;
 use App\Models\EventStats;
 use App\Models\RegistrationUser;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Lang;
 use Services\Captcha\Factory;
 use Auth;
@@ -249,139 +250,128 @@ class EventViewController extends Controller
      */
     public function postEventRegistration(Request $request, $event_id, $registration_id)
     {
-        dd($request->all());
-        $event = Event::findOrFail($event_id);
-        $registration = Event::findOrFail($event_id)->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
+        try {
+            DB::beginTransaction();
 
-        // Check if registration is active and not expired
-        if ($registration->end_date < now() || $registration->status == 'inactive') {
-            return redirect()
-                ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
-                ->with('error', 'This registration option is no longer available.');
-        }
+            $event = Event::findOrFail($event_id);
+            $registration = $event->registrations()->with('dynamicFormFields')->findOrFail($registration_id);
 
-        // Validate basic fields
-        $rules = [
-            'first_name' => 'required|string|max:255',
-            'last_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
-            'phone' => 'nullable|string|max:20',
-        ];
+            // Check if registration is active and not expired
+            if ($registration->end_date < now() || $registration->status == 'inactive') {
+                return redirect()
+                    ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
+                    ->with('error', 'This registration option is no longer available.');
+            }
 
-        // Add conference validation if applicable
-        if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
-            $rules['conference_id'] = 'required|exists:conferences,id';
-            $rules['profession_id'] = 'required|exists:professions,id';
+            // Validate basic fields
+            $rules = [
+                'first_name' => 'required|string|max:255',
+                'last_name' => 'required|string|max:255',
+                'email' => 'required|email|max:255',
+                'phone' => 'nullable|string|max:20',
+            ];
 
-            // Verify the conference is active
-            $conferenceId = $request->input('conference_id');
-            $conference = $registration->category->conferences->where('id', $conferenceId)->first();
+            // Add conference validation if applicable
+            if ($registration->category && $registration->category->conferences && $registration->category->conferences->where('status', 'active')->count() > 0) {
+                $rules['conference_id'] = 'required|exists:conferences,id';
+                $rules['profession_id'] = 'required|exists:professions,id';
 
-            if (!$conference || $conference->status != 'active') {
+                // Verify the conference is active
+                $conferenceId = $request->input('conference_id');
+                $conference = $registration->category->conferences->where('id', $conferenceId)->first();
+
+                if (!$conference || $conference->status != 'active') {
+                    return redirect()
+                        ->back()
+                        ->with('error', 'The selected conference is no longer available.')
+                        ->withInput();
+                }
+            }
+
+            // Add validation rules for dynamic form fields
+            foreach ($registration->dynamicFormFields as $field) {
+                $fieldRules = [];
+
+                if ($field->is_required) {
+                    $fieldRules[] = 'required';
+                } else {
+                    $fieldRules[] = 'nullable';
+                }
+
+                if ($field->type == 'file') {
+                    $fieldRules[] = 'file';
+                    $fieldRules[] = 'max:10240';  // 10MB max file size
+                } elseif ($field->type == 'email') {
+                    $fieldRules[] = 'email';
+                } elseif ($field->type == 'date') {
+                    $fieldRules[] = 'date';
+                }
+
+                $rules['fields.' . $field->id] = implode('|', $fieldRules);
+            }
+
+            $validator = Validator::make($request->all(), $rules);
+
+            if ($validator->fails()) {
                 return redirect()
                     ->back()
-                    ->with('error', 'The selected conference is no longer available.')
+                    ->withErrors($validator)
                     ->withInput();
             }
-        }
 
-        // Add validation rules for dynamic form fields
-        foreach ($registration->dynamicFormFields as $field) {
-            $fieldRules = [];
-
-            if ($field->is_required) {
-                $fieldRules[] = 'required';
-            } else {
-                $fieldRules[] = 'nullable';
-            }
-
-            if ($field->type == 'file') {
-                $fieldRules[] = 'file';
-                $fieldRules[] = 'max:10240';  // 10MB max file size
-            } elseif ($field->type == 'email') {
-                $fieldRules[] = 'email';
-            } elseif ($field->type == 'date') {
-                $fieldRules[] = 'date';
-            }
-
-            $rules['fields.' . $field->id] = implode('|', $fieldRules);
-        }
-
-        $validator = Validator::make($request->all(), $rules);
-
-        if ($validator->fails()) {
-            return redirect()
-                ->back()
-                ->withErrors($validator)
-                ->withInput();
-        }
-
-        // Create the registration user
-        $registrationUser = new RegistrationUser([
-            'category_id' => $registration->category_id,
-            'conference_id' => $request->input('conference_id'),
-            'profession_id' => $request->input('profession_id'),
-            'registration_id' => $registration->id,
-            'first_name' => $request->input('first_name'),
-            'last_name' => $request->input('last_name'),
-            'email' => $request->input('email'),
-            'phone' => $request->input('phone'),
-            'status' => 'pending',
-            'is_new' => true,
-        ]);
-
-        // Save the registration user and ensure we have an ID before proceeding
-        $registrationUser->save();
-
-        // Make sure the registration user was saved and has an ID
-        if (!$registrationUser->id) {
-            \Log::error('Failed to save registration user', [
-                'data' => $request->all(),
-                'registration_id' => $registration->id
+            // Create the registration user
+            $registrationUser = RegistrationUser::create([
+                'category_id' => $registration->category_id,
+                'conference_id' => $request->input('conference_id'),
+                'profession_id' => $request->input('profession_id'),
+                'registration_id' => $registration->id,
+                'first_name' => $request->input('first_name'),
+                'last_name' => $request->input('last_name'),
+                'email' => $request->input('email'),
+                'phone' => $request->input('phone'),
+                'status' => 'pending',
+                'is_new' => true,
             ]);
-            return redirect()
-                ->back()
-                ->with('error', 'There was a problem processing your registration. Please try again.')
-                ->withInput();
-        }
 
-        // Save form responses
-        if ($request->has('fields')) {
-            foreach ($request->input('fields') as $fieldId => $value) {
-                $field = $registration->dynamicFormFields()->find($fieldId);
+            // Save form responses
+            if ($request->has('fields')) {
+                foreach ($request->input('fields') as $fieldId => $value) {
+                    $field = $registration->dynamicFormFields()->find($fieldId);
 
-                if ($field) {
-                    // Handle file uploads
-                    if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
-                        $file = $request->file('fields.' . $fieldId);
-                        $path = $file->store('form-uploads', 'public');
-                        $value = $path;
-                    }
+                    // dd($request->all());
+                    if ($field) {
+                        // Handle file uploads
+                        if ($field->type == 'file' && $request->hasFile('fields.' . $fieldId)) {
+                            $file = $request->file('fields.' . $fieldId);
+                            $path = $file->store('form-uploads', 'public');
+                            $value = $path;
+                        }
 
-                    try {
                         // Create form response using DynamicFormFieldValue
                         $formFieldValue = new DynamicFormFieldValue();
                         $formFieldValue->registration_user_id = $registrationUser->id;
-                        $formFieldValue->field_id = $fieldId;
+                        $formFieldValue->dynamic_form_field_id = $fieldId;
                         $formFieldValue->value = $value;
                         $formFieldValue->save();
-                    } catch (\Exception $e) {
-                        \Log::error('Failed to save form field value', [
-                            'error' => $e->getMessage(),
-                            'registration_user_id' => $registrationUser->id,
-                            'field_id' => $fieldId,
-                            'value' => $value
-                        ]);
+
                     }
                 }
             }
+
+            // Send confirmation email
+            // Mail::to($registrationUser->email)->send(new RegistrationConfirmation($registrationUser));
+
+            DB::commit();
+
+            return redirect()
+                ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
+                ->with('success', 'Your registration has been submitted successfully. You will receive a confirmation email shortly.');
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return redirect()
+                ->back()
+                ->with('error', `There was a problem processing your registration. Please try again. | ${$e->getMessage()}`)
+                ->withInput();
         }
-
-        // Send confirmation email
-        // Mail::to($registrationUser->email)->send(new RegistrationConfirmation($registrationUser));
-
-        return redirect()
-            ->route('showEventPage', ['event_id' => $event_id, 'event_slug' => $event->slug])
-            ->with('success', 'Your registration has been submitted successfully. You will receive a confirmation email shortly.');
     }
 }

@@ -73,6 +73,62 @@ class Registration extends MyBaseModel
         ];
     }
 
+    // $casts
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+    ];
+
+        /**
+     * Parse start_date to a Carbon instance
+     *
+     * @param  string  $date  DateTime
+     */
+    public function setStartDateAttribute($date)
+    {
+        $format = config('attendize.default_datetime_format');
+
+        if ($date instanceof Carbon) {
+            $this->attributes['start_date'] = $date->format($format);
+        } else {
+            $this->attributes['start_date'] = Carbon::createFromFormat($format, $date);
+        }
+    }
+
+    /**
+     * Format start date from user preferences
+     * @return String Formatted date
+     */
+    public function startDateFormatted()
+    {
+        return $this->start_date->format(config('attendize.default_datetime_format'));
+    }
+
+    /**
+     * Parse end_date to a Carbon instance
+     *
+     * @param  string  $date  DateTime
+     */
+    public function setEndDateAttribute($date)
+    {
+        $format = config('attendize.default_datetime_format');
+
+        if ($date instanceof Carbon) {
+            $this->attributes['end_date'] = $date->format($format);
+        } else {
+            $this->attributes['end_date'] = Carbon::createFromFormat($format, $date);
+        }
+    }
+
+    /**
+     * Format end date from user preferences
+     * @return String Formatted date
+     */
+    public function endDateFormatted()
+    {
+        return $this->end_date->format(config('attendize.default_datetime_format'));
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -117,5 +173,5 @@ class Registration extends MyBaseModel
     {
         return $this->dynamicFormFields()->where('is_active', true)->orderBy('sort_order');
     }
-    
+
 }

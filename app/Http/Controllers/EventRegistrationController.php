@@ -6,9 +6,11 @@ use App\Models\Category;
 use App\Models\DynamicFormField;
 use App\Models\Event;
 use App\Models\Registration;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class EventRegistrationController extends Controller
@@ -36,15 +38,15 @@ class EventRegistrationController extends Controller
             abort(404);
         }
 
-        $registrationQuery = $event
-            ->registrations()
-            ->withCount('users')
+        $registrationQuery = $event->registrations()
+            ->withCount('registrationUsers')
             ->withCount([
-                'users as new_users_count' => function ($query) {
+                'registrationUsers as new_users_count' => function ($query) {
                     $query->where('is_new', true);
-                }
+                },
             ])
             ->with('category');
+
 
         // Apply filters
         if ($statusFilter) {
@@ -106,12 +108,6 @@ class EventRegistrationController extends Controller
     }
 
     /**
-     * @param Request $request
-     * @param $event_id
-     * @return mixed
-     */
-
-    /**
      * Store a newly created registration in storage.
      *
      * @param \Illuminate\Http\Request $request
@@ -168,7 +164,7 @@ class EventRegistrationController extends Controller
                     $formField->name = Str::slug($field['label'], '_');
                     $formField->type = $field['type'];
                     $formField->is_required = isset($field['is_required']) ? true : false;
-                    $formField->sort_order = $sortOrder++;
+                    $formField->sort_order = isset($field['position']) ? (int)$field['position'] : $sortOrder++;
 
                     // Handle options for select, checkbox, radio
                     if (in_array($formField->type, ['select', 'checkbox', 'radio']) && !empty($field['options'])) {
@@ -200,58 +196,6 @@ class EventRegistrationController extends Controller
             ]);
         }
     }
-
-    /**
-     * Create default form fields for a registration.
-     *
-     * @param \App\Models\Registration $registration
-     * @return void
-     */
-    // protected function createDefaultFormFields(Registration $registration)
-    // {
-    //     // Create default form fields
-    //     $defaultFields = [
-    //         [
-    //             'label' => 'First Name',
-    //             'name' => 'first_name',
-    //             'type' => 'text',
-    //             'is_required' => true,
-    //             'sort_order' => 0,
-    //         ],
-    //         [
-    //             'label' => 'Last Name',
-    //             'name' => 'last_name',
-    //             'type' => 'text',
-    //             'is_required' => true,
-    //             'sort_order' => 1,
-    //         ],
-    //         [
-    //             'label' => 'Email',
-    //             'name' => 'email',
-    //             'type' => 'email',
-    //             'is_required' => true,
-    //             'sort_order' => 2,
-    //         ],
-    //         [
-    //             'label' => 'Phone',
-    //             'name' => 'phone',
-    //             'type' => 'tel',
-    //             'is_required' => false,
-    //             'sort_order' => 3,
-    //         ],
-    //     ];
-
-    //     foreach ($defaultFields as $field) {
-    //         DynamicFormField::create([
-    //             'registration_id' => $registration->id,
-    //             'label' => $field['label'],
-    //             'name' => $field['name'],
-    //             'type' => $field['type'],
-    //             'is_required' => $field['is_required'],
-    //             'sort_order' => $field['sort_order'],
-    //         ]);
-    //     }
-    // }
 
     /**
      * Show the registration details modal.
@@ -309,20 +253,59 @@ class EventRegistrationController extends Controller
 
         try {
             $registration = Registration::findOrFail($registration_id);
+            $format = config('attendize.default_datetime_format');
+            $event = Event::scope()->find($event_id);
 
             // Validate the request
             $rules = [
                 'name' => 'required|string|max:255',
                 'max_participants' => 'nullable|integer|min:1',
                 'category_id' => 'required|exists:categories,id',
-                'start_date' => 'required|date',
-                'end_date' => 'required|date|after_or_equal:start_date',
+                'start_date' => [
+                    'required',
+                    "date_format:{$format}",
+                    function ($attribute, $value, $fail) use ($event) {
+                        if ($event) {
+                            $startDate = Carbon::createFromFormat('Y-m-d H:i', $value);
+                            $eventStart = Carbon::parse($event->start_date);
+                            $eventEnd = Carbon::parse($event->end_date);
+
+                            if ($startDate->lt($eventStart)) {
+                                $fail("The {$attribute} must be on or after the event start date ({$eventStart}).");
+                            }
+
+                            if ($startDate->gt($eventEnd)) {
+                                $fail("The {$attribute} must be on or before the event end date ({$eventEnd}).");
+                            }
+                        }
+                    },
+                ],
+                'end_date' => [
+                    'required',
+                    "date_format:{$format}",
+                    'after:start_date',
+                    function ($attribute, $value, $fail) use ($event) {
+                        if ($event && $value >= $event->end_date) {
+                            $fail("The {$attribute} must be on or before the event end date ({$event->end_date}).");
+                        }
+                        if ($event && $value <= $event->start_date) {
+                            $fail("The {$attribute} must be on or after the event start date ({$event->start_date}).");
+                        }
+                    },
+                ],
                 'approval_status' => 'required|in:automatic,manual',
                 'status' => 'required|in:active,inactive',
             ];
 
-            $this->validate($request, $rules);
+            $validator = Validator::make($request->all(), $rules);
 
+            if ($validator->fails()) {
+                return response()->json([
+                    'status' => 'error',
+                    'messages' => $validator->errors(),
+                ]);
+            }
+            // dd($request->all());
             // Update registration basic info
             $registration->name = $request->input('name');
             $registration->max_participants = $request->input('max_participants');
@@ -357,7 +340,10 @@ class EventRegistrationController extends Controller
                             $field->type = $fieldData['type'];
                             $field->options = isset($fieldData['options']) ? $fieldData['options'] : null;
                             $field->is_required = isset($fieldData['is_required']) ? true : false;
-                            $field->sort_order = $index;
+
+                            // Use the position value from the form
+                            $field->sort_order = isset($fieldData['position']) ? (int)$fieldData['position'] : $index;
+
                             $field->save();
                         }
                     } else {
@@ -370,7 +356,7 @@ class EventRegistrationController extends Controller
                             'options' => isset($fieldData['options']) ? $fieldData['options'] : null,
                             'is_required' => isset($fieldData['is_required']) ? true : false,
                             'is_active' => true,
-                            'sort_order' => $index,
+                            'sort_order' => isset($fieldData['position']) ? (int)$fieldData['position'] : $index,
                         ]);
                     }
                 }

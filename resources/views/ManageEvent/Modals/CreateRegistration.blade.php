@@ -374,24 +374,24 @@ $(document).ready(function() {
     $(document).on('click', '.move-up-btn', function() {
         const $currentField = $(this).closest('.dynamic-field');
         const $prevField = $currentField.prev('.dynamic-field');
-        
+
         if ($prevField.length) {
             $currentField.insertBefore($prevField);
             updatePositionNumbers();
         }
     });
-    
+
     // Delegate event handler for the move down button
     $(document).on('click', '.move-down-btn', function() {
         const $currentField = $(this).closest('.dynamic-field');
         const $nextField = $currentField.next('.dynamic-field');
-        
+
         if ($nextField.length) {
             $currentField.insertAfter($nextField);
             updatePositionNumbers();
         }
     });
-    
+
     // Add some CSS for better UX
     $('<style>')
         .text(`

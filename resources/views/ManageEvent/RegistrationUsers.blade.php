@@ -306,7 +306,9 @@
                                                         </button>
                                                         <ul class="dropdown-menu dropdown-menu-right" role="menu">
                                                             <li>
-                                                                <a href="javascript:void(0);" class="view-user"
+                                                                <a href="javascript:void(0);"
+                                                                    data-href="{{ route('getUserDetails', ['event_id' => $event->id, 'user_id' => $user->id]) }}"
+                                                                    class="loadModal view-user"
                                                                     data-user-id="{{ $user->id }}">
                                                                     <i class="ico-eye"></i> View Details
                                                                 </a>
@@ -315,7 +317,8 @@
                                                                 <li>
                                                                     <a href="javascript:void(0);" class="update-status"
                                                                         data-user-id="{{ $user->id }}"
-                                                                        data-status="approved">
+                                                                        data-status="approved"
+                                                                        data-url="{{ route('updateUserStatus', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
                                                                         <i class="ico-checkmark"></i> Approve
                                                                     </a>
                                                                 </li>
@@ -324,7 +327,8 @@
                                                                 <li>
                                                                     <a href="javascript:void(0);" class="update-status"
                                                                         data-user-id="{{ $user->id }}"
-                                                                        data-status="rejected">
+                                                                        data-status="rejected"
+                                                                        data-url="{{ route('updateUserStatus', ['event_id' => $event->id, 'user_id' => $user->id]) }}">
                                                                         <i class="ico-close"></i> Reject
                                                                     </a>
                                                                 </li>
@@ -462,7 +466,7 @@
             $('.update-status').on('click', function(e) {
                 e.preventDefault();
 
-                const userId = $(this).data('user-id');
+                const url = $(this).data('url');
                 const status = $(this).data('status');
 
                 let confirmMessage = '';
@@ -477,9 +481,6 @@
                 }
 
                 if (confirm(confirmMessage)) {
-                    let url =
-                        '{{ route('updateUserStatus', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
-                    url = url.replace('__USER_ID__', userId);
                     $.ajax({
                         url: url,
                         type: 'POST',
@@ -494,7 +495,7 @@
                             }
                         },
                         error: function(xhr) {
-                            console.error(xhr);
+                            console.error(xhr.responseText); // خليها تطبع التفاصيل
                             alert('An error occurred. Please try again.');
                         }
                     });
@@ -532,33 +533,33 @@
             });
 
             // View user details
-            $('.view-user').on('click', function(e) {
-                e.preventDefault();
+            // $('.view-user').on('click', function(e) {
+            //     e.preventDefault();
 
-                const userId = $(this).data('user-id');
-                const modal = $('#user-details-modal');
+            //     const userId = $(this).data('user-id');
+            //     const modal = $('#user-details-modal');
 
-                // Show modal with loading indicator
-                modal.modal('show');
+            //     // Show modal with loading indicator
+            //     modal.modal('show');
 
-                // Load user details via AJAX
-                let url =
-                    '{{ route('getUserDetails', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
-                url = url.replace('__USER_ID__', userId);
-                $.ajax({
-                    url: url,
-                    type: 'GET',
-                    success: function(response) {
-                        modal.find('.user-details-content').html(response);
-                    },
-                    error: function(xhr) {
-                        console.error(xhr);
-                        modal.find('.user-details-content').html(
-                            '<div class="alert alert-danger">Failed to load user details</div>'
-                            );
-                    }
-                });
-            });
+            //     // Load user details via AJAX
+            //     let url =
+            //         '{{ route('getUserDetails', ['event_id' => $event->id, 'user_id' => '__USER_ID__']) }}';
+            //     url = url.replace('__USER_ID__', userId);
+            //     $.ajax({
+            //         url: url,
+            //         type: 'GET',
+            //         success: function(response) {
+            //             modal.find('.user-details-content').html(response);
+            //         },
+            //         error: function(xhr) {
+            //             console.error(xhr);
+            //             modal.find('.user-details-content').html(
+            //                 '<div class="alert alert-danger">Failed to load user details</div>'
+            //                 );
+            //         }
+            //     });
+            // });
         });
     </script>
 @stop

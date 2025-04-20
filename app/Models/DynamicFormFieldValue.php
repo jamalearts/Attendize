@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class DynamicFormFieldValue extends Model
 {
+    protected $table = "dynamic_form_field_values";
     protected $fillable = [
         'registration_user_id',
         'dynamic_form_field_id',

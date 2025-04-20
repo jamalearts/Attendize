@@ -18,12 +18,13 @@
                                 style="height: 160px; position: relative;">
                                 @if ($registration->image)
                                     <img src="{{ asset('storage/' . $registration->image) }}"
-                                        class="img-fluid w-100 h-100 object-fit-cover" alt="{{ $registration->name }}">
+                                        class="img-fluid object-fit-cover" alt="{{ $registration->name }}"
+                                        style="width:100% ; height: 100%;" >
                                 @else
                                     <div class="reg-title">{{ $registration->name }}</div>
                                 @endif
 
-                                @if($registration->category && $registration->category->conferences && $registration->category->conferences->count() > 0)
+                                {{-- @if($registration->category && $registration->category->conferences && $registration->category->conferences->count() > 0)
                                     @php
                                         $minPrice = $registration->category->conferences->min('price');
                                         $maxPrice = $registration->category->conferences->max('price');
@@ -35,7 +36,7 @@
                                             ${{ number_format($minPrice, 2) }} - ${{ number_format($maxPrice, 2) }}
                                         @endif
                                     </div>
-                                @endif
+                                @endif --}}
                             </div>
 
                             <div class="card-body p-3">
@@ -88,6 +89,12 @@
                                     Register Now
                                 </a>
                             </div>
+                        </div>
+                    </div>
+                    @else
+                    <div class="col-12">
+                        <div class="alert alert-info">
+                            No upcoming Form Registartions available at this time.
                         </div>
                     </div>
                 @endif
