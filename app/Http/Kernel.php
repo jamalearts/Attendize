@@ -38,7 +38,8 @@ class Kernel extends HttpKernel
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
 
             // Attendize Middleware
-            \App\Http\Middleware\SetViewVariables::class
+            \App\Http\Middleware\SetViewVariables::class,
+            \App\Http\Middleware\SetLocale::class,
         ],
 
         'api' => [

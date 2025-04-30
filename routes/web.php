@@ -849,3 +849,21 @@ Route::group(
         [IndexController::class, 'showIndex']
     )->name('index');
 });
+
+Auth::routes();
+
+Route::get('/home', 'HomeController@index')->name('home');
+
+// Language switcher route
+Route::get('language/{locale}', function ($locale) {
+    if (in_array($locale, ['en', 'ar'])) {
+        session()->put('locale', $locale);
+        app()->setLocale($locale);
+    }
+    return redirect()->back();
+})->name('language.switch');
+
+// Your other routes
+Route::get('/events/{event}', function() {
+    return view('ViewEvent.show');
+})->name('events.show');
