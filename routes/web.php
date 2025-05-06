@@ -868,4 +868,4 @@ Route::get('/events/{event}', function() {
     return view('ViewEvent.show');
 })->name('events.show');
 
-//by jamal
+//by jamal test push
